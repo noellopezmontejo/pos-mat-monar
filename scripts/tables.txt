@@ -1,0 +1,94 @@
+CREATE TABLE `c_colonia` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `c_Colonia` varchar(20) DEFAULT NULL,
+  `c_CodigoPostal` varchar(20) DEFAULT NULL,
+  `Nombre` varchar(150) DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=145367 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `c_cp` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `c_CP` varchar(50) DEFAULT NULL,
+  `c_Estado` varchar(50) DEFAULT NULL,
+  `c_Municipio` varchar(50) DEFAULT NULL,
+  `c_Localidad` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=32488 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `c_estado` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `c_Estado` varchar(50) DEFAULT NULL,
+  `c_Pais` varchar(50) DEFAULT NULL,
+  `Descripcion` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `c_municipio` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `c_Municipio` varchar(50) DEFAULT NULL,
+  `c_Estado` varchar(50) DEFAULT NULL,
+  `Descripcion` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2464 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `c_pais` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `c_Pais` varchar(50) DEFAULT NULL,
+  `Descripcion` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=251 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `catformapagosat` (
+  `CveFormaPago` int(10) NOT NULL AUTO_INCREMENT,
+  `c_FormaPago` varchar(4) NOT NULL,
+  `Descripcion` varchar(255) DEFAULT NULL,
+  `Bancarizado` varchar(255) DEFAULT NULL,
+  `NumOperacion` varchar(255) DEFAULT NULL,
+  `RfcEmisorOrdenante` varchar(255) DEFAULT NULL,
+  `CuentaOrdenante` varchar(255) DEFAULT NULL,
+  `PatrónCuentaOrdenante` varchar(255) DEFAULT NULL,
+  `RfcEmisorBeneficiario` varchar(255) DEFAULT NULL,
+  `CuentaBenenficiario` varchar(255) DEFAULT NULL,
+  `PatrónCuentaBeneficiaria` varchar(255) DEFAULT NULL,
+  `TipoCadenaPago` varchar(255) DEFAULT NULL,
+  `NombreBancoEmisorOrdenanteExtranjero` varchar(255) DEFAULT NULL,
+  `InicioVig` varchar(10) DEFAULT NULL,
+  `FinVig` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`CveFormaPago`),
+  UNIQUE KEY `PK_CatFormaPagoSat` (`CveFormaPago`)
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `catmetodopagosat` (
+  `CveMetodoPago` int(10) NOT NULL AUTO_INCREMENT,
+  `c_metodopago` varchar(5) NOT NULL,
+  `Descripcion` varchar(100) DEFAULT NULL,
+  `InicioVig` varchar(10) DEFAULT NULL,
+  `FinVig` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`CveMetodoPago`),
+  UNIQUE KEY `PK_CatMetodoPagoSat` (`CveMetodoPago`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `catregimensat` (
+  `CveRegimen` int(10) NOT NULL AUTO_INCREMENT,
+  `CveTipoEmisor` int(10) DEFAULT NULL,
+  `Regimen` varchar(10) NOT NULL,
+  `Descripcion` varchar(255) DEFAULT NULL,
+  `Fisica` varchar(255) DEFAULT NULL,
+  `Moral` varchar(255) DEFAULT NULL,
+  `InicioVig` varchar(10) DEFAULT NULL,
+  `FinVig` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`CveRegimen`),
+  UNIQUE KEY `PK_CatRegimenSat` (`CveRegimen`)
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `catusocfdisat` (
+  `CveUso` int(10) NOT NULL AUTO_INCREMENT,
+  `c_UsoCFDI` varchar(5) NOT NULL,
+  `Descripcion` varchar(255) DEFAULT NULL,
+  `Persona` varchar(2) DEFAULT NULL,
+  `InicioVig` varchar(10) DEFAULT NULL,
+  `FinVig` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`CveUso`),
+  UNIQUE KEY `PK_CatUsoCfdiSat` (`CveUso`)
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8;
+

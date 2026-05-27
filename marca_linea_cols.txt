@@ -1,0 +1,14 @@
+[
+  {
+    "TABLE_NAME": "CFGLIN01",
+    "COLUMN_NAME": "LINEA"
+  },
+  {
+    "TABLE_NAME": "TALLA01",
+    "COLUMN_NAME": "LINEA"
+  },
+  {
+    "TABLE_NAME": "COLOR01",
+    "COLUMN_NAME": "LINEA"
+  }
+]

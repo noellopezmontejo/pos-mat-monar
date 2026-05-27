@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #0ea5e9;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-content: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+}
+
+/* Print Styles for Thermal Receipt */
+@media print {
+  @page {
+    margin: 0;
+    size: 80mm auto;
+  }
+
+  /* Reset radical del entorno */
+  body, html {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 80mm !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultar absolutamente todo excepto el ticket */
+  aside, 
+  header, 
+  nav, 
+  footer,
+  button,
+  #ar-dashboard, /* ID específico si existe */
+  .print-hidden,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Asegurar que el contenedor del ticket no se oculte por sus padres */
+  #root, 
+  main,
+  main > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    display: block !important;
+    background: white !important;
+  }
+
+  .print-container-parent {
+    display: block !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Forzar corte de la impresora */
+  .page-break {
+    display: block;
+    clear: both;
+    page-break-after: always !important;
+    break-after: page !important;
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Negro extra fuerte para el total */
+  .total-highlight {
+    background: black !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-only {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @media print {
+    .print-only {
+      display: block !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+
+  .print-container-parent {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: 80mm !important;
+  }
+  
+  .print-copy-wrapper {
+    overflow: visible !important;
+    height: auto !important;
+    width: 80mm !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

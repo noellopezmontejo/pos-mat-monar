@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PosMatMonar</string>
+    <string name="title_activity_main">PosMatMonar</string>
+    <string name="package_name">com.monar.pos</string>
+    <string name="custom_url_scheme">com.monar.pos</string>
+</resources>

@@ -1,0 +1,49 @@
+# Logs y Diagnósticos
+logs
+*.log
+npm-debug.log*
+server_debug.txt
+server_final.txt
+server_fixed.txt
+sae_analysis.txt
+sae_schema_dump.txt
+sae_secondary_dump.txt
+deep_sae_probe.txt
+diagnostic.txt
+generate_output.txt
+p_error.txt
+p_error_utf8.txt
+prisma-error.log
+prisma_error_utf8.log
+prisma_val.log
+sae_analysis.txt
+
+# Dependencias
+node_modules/
+
+# Directorios de Build
+dist/
+dist-ssr/
+*.local
+
+# Variables de entorno y credenciales (¡Seguridad!)
+.env
+.env.production
+.env.local
+.env.*.local
+
+# Carpetas temporales y de borrador
+tmp/
+scratch/
+.gemini/
+
+# Archivos de Editores e IDEs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvsca
+*.njsproj
+*.sln
+*.sw?

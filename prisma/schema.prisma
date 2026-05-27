@@ -1,0 +1,825 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  legacy_code String?   @unique
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+  created_by  String?
+  products    Product[]
+}
+
+model Supplier {
+  id          String          @id @default(uuid())
+  name        String
+  rfc         String?
+  phone       String?
+  email       String?
+  address     String?
+  legacy_code String?         @unique
+  created_at  DateTime        @default(now())
+  updated_at  DateTime        @updatedAt
+  deleted_at  DateTime?
+  created_by  String?
+  credit_days Int             @default(0) // Días de crédito autorizados
+  products    Product[]
+  purchases   PurchaseOrder[]
+  payments    SupplierPayment[]
+  credits     SupplierCreditNote[]
+  purchase_suggestions PurchaseSuggestion[]
+  returns     SupplierReturn[]
+}
+
+model Product {
+  id             String              @id @default(uuid())
+  name           String
+  description    String?
+  barcode        String?             @unique
+  legacy_code    String?             @unique
+  category_id    String
+  supplier_id    String?
+  model          String?
+  base_unit      String              // UNI_MED
+  purchase_unit  String?             // UNI_COMP
+  sale_unit      String?             // UNI_VENTA
+  unit_factor    Float               @default(1) // FAC_CONV
+  weight         Float?              @default(0) // PESO
+  volume         Float?              @default(0) // VOLUMEN
+  status         String              @default("Activo") // STATUS
+  tax_scheme_id  String?             // Relación con TaxScheme (IMPU01)
+  cost           Int                 @default(0)
+  last_cost      Int                 @default(0) // ULT_COSTO (en centavos)
+  avg_cost       Int                 @default(0) // COSTO_PROM (en centavos)
+  price_1        Int                 @default(0)
+  price_2        Int                 @default(0)
+  price_3        Int                 @default(0)
+  price_4        Int                 @default(0)
+  price_5        Int                 @default(0)
+  price_6        Int                 @default(0)
+  min_stock      Int                 @default(0)
+  max_stock      Int                 @default(0)
+  has_lots       Boolean             @default(false)
+  has_series     Boolean             @default(false)
+  is_service     Boolean             @default(false)
+  image_url      String?
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @updatedAt
+  deleted_at     DateTime?
+  created_by     String?
+  line_id        String?             // Relación con CLIN01
+  line           ProductLine?        @relation(fields: [line_id], references: [id])
+  tax_scheme     TaxScheme?          @relation(fields: [tax_scheme_id], references: [id])
+
+  is_kit         Boolean             @default(false)
+  kit_components KitComponent[]      @relation("KitToProduct")
+  component_in   KitComponent[]      @relation("ComponentToProduct")
+  
+  conversions_from ProductConversion[] @relation("ConversionSource")
+  conversions_to   ProductConversion[] @relation("ConversionTarget")
+  
+  supplier_return_items SupplierReturnItem[]
+  customer_return_items CustomerReturnItem[]
+  transfer_items        WarehouseTransferItem[]
+
+  kardex         Kardex[]
+  category       Category            @relation(fields: [category_id], references: [id])
+  supplier       Supplier?           @relation(fields: [supplier_id], references: [id])
+  reception_items ReceptionItem[]
+  purchase_items  PurchaseOrderItem[]
+  sale_items      SaleItem[]
+  stock           Stock[]
+  purchase_suggestions PurchaseSuggestion[]
+}
+
+model TaxScheme {
+  id           String    @id @default(uuid())
+  num_reg      Int?      // NUM_REG
+  code         String    @unique // CVEESQIMPU
+  name         String    // DESCRIPESQ
+  tax1_rate    Float     @default(0) // IMPUESTO1
+  tax1_apply   Int       @default(0) // IMP1APLICA
+  tax2_rate    Float     @default(0) // IMPUESTO2
+  tax2_apply   Int       @default(0) // IMP2APLICA
+  tax3_rate    Float     @default(0) // IMPUESTO3
+  tax3_apply   Int       @default(0) // IMP3APLICA
+  tax4_rate    Float     @default(0) // IMPUESTO4
+  tax4_apply   Int       @default(0) // IMP4APLICA
+  coi_account  String?   // NCUENCONT
+  products     Product[]
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+}
+
+model ProductLine {
+  id           String    @id @default(uuid())
+  num_reg      Int?      // NUM_REG
+  code         String    @unique // CLV_LIN / CVE_LIN
+  name         String    // DESC_LIN
+  coi_account  String?   // CUENTA_COI
+  products     Product[]
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+}
+
+model Customer {
+  id            String        @id @default(uuid())
+  name          String
+  phone         String?
+  address       String?
+  delivery_zone String?
+  customer_type String        @default("P1")
+  credit_limit  Int           @default(0)
+  credit_days   Int           @default(0)
+  seller_id     String?
+  legacy_code   String?       @unique
+  fiscal_id     String?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  deleted_at    DateTime?
+  created_by    String?
+  credits       Credit[]
+  fiscal_client FiscalClient? @relation(fields: [fiscal_id], references: [id])
+  sales         Sale[]
+  customer_payments CustomerPayment[]
+  returns       CustomerReturn[]
+}
+
+model Stock {
+  id         String   @id @default(uuid())
+  product_id String
+  branch_id  String
+  quantity   Int      @default(0)
+  committed  Int      @default(0)
+  updated_at DateTime @updatedAt
+  branch     Branch   @relation(fields: [branch_id], references: [id])
+  product    Product  @relation(fields: [product_id], references: [id])
+
+  @@unique([product_id, branch_id])
+}
+
+model Kardex {
+  id         String   @id @default(uuid())
+  product_id String
+  branch_id  String?
+  type       String
+  reason     String
+  quantity   Int
+  balance    Int
+  cost       Float?   @default(0)
+  price      Float?   @default(0)
+  reference  String?
+  user_id    String
+  created_at DateTime @default(now())
+  product    Product  @relation(fields: [product_id], references: [id])
+  branch     Branch?  @relation(fields: [branch_id], references: [id])
+}
+
+model Sale {
+  id              String     @id @default(uuid())
+  folio           String     @unique
+  customer_id     String
+  type            String
+  status          String
+  created_at      DateTime   @default(now()) // FECHAELAB
+  document_date   DateTime?                  // FECHA_DOC
+  total_amount    Float?                     // IMP_TOT4
+  subtotal        Float?                     // CAN_TOT
+  discount        Float?                     // DES_TOT
+  taxes           Float?                     // SUM(IMP_TOT1..3)
+  balance         Float?     @default(0)     // SALDO PENDIENTE (Abonos)
+  warehouse_id    String?                    // NUM_ALMA
+  observations    String?
+  payment_method  String?                    // CASH, CARD, TRANSFER, CREDIT_STORE
+  collected_by    String?                    // ID del chofer que cobró en campo
+  collected_at    DateTime?                  // Fecha/hora del cobro en campo
+  collected_method String?                   // EFECTIVO, TARJETA — método real de cobro
+  liquidated_by   String?                    // ID del usuario de oficina que verificó
+  liquidated_at   DateTime?                  // Fecha/hora de la liquidación en oficina
+  liquidation_notes String?                  // Notas: "Voucher #1234 recibido"
+  created_by      String
+  updated_at      DateTime   @updatedAt
+  customer        Customer   @relation(fields: [customer_id], references: [id])
+  items           SaleItem[]
+  delivery        Delivery?
+  cfdis           CFDI[]     @relation("SaleToCFDI")
+
+  warehouse       Branch?    @relation("SaleWarehouse", fields: [warehouse_id], references: [id])
+  customer_payments CustomerPayment[]
+}
+
+model SaleItem {
+  id                String  @id @default(uuid())
+  sale_id           String
+  product_id        String
+  quantity          Int
+  price             Float?  @default(0) // PREC
+  cost              Float?  @default(0) // COST
+  discount          Float?  @default(0) // DESCU
+  tax_percentage    Float?  @default(0) // IMPU1..4
+  warehouse_id      String?               // NUM_ALM
+  unit              String?               // UNI_VENTA
+  product           Product @relation(fields: [product_id], references: [id])
+  sale              Sale    @relation(fields: [sale_id], references: [id])
+  warehouse         Branch? @relation("SaleItemWarehouse", fields: [warehouse_id], references: [id])
+}
+
+model Vehicle {
+  id               String    @id @default(uuid())
+  name             String                          // Alias: "Camión 1", "Foráneo Grande"
+  plate            String    @unique               // Placas
+  type             String                          // MOTOCICLETA, CAMIONETA, CAMION_3T, CAMION_8T, TRAILER
+  brand            String?
+  model            String?
+  year             Int?
+  capacity_weight  Float     @default(0)           // Capacidad en KG
+  capacity_volume  Float     @default(0)           // Capacidad en M3
+  status           String    @default("Disponible") // Disponible, En Ruta, Mantenimiento, Inactivo
+  notes            String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  drivers          Driver[]
+  routes           Route[]
+}
+
+model Driver {
+  id          String    @id @default(uuid())
+  name        String
+  phone       String?
+  license     String?                             // Número de licencia
+  license_type String?                            // A, B, C, D, E (tipo de licencia)
+  vehicle_id  String?                             // Vehículo habitual asignado
+  status      String    @default("Activo")        // Activo, Inactivo, En Ruta
+  notes       String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  vehicle     Vehicle?  @relation(fields: [vehicle_id], references: [id])
+  routes      Route[]
+  users       User[]
+}
+
+model Route {
+  id              String     @id @default(uuid())
+  name            String
+  vehicle_id      String?
+  driver_id       String?
+  status          String     @default("Pendiente")     // Pendiente, En Ruta, Completada
+  current_lat     Float?                                // Live GPS lat
+  current_lng     Float?                                // Live GPS lng
+  tracking_active Boolean    @default(false)            // Is driver actively tracking?
+  last_location_at DateTime?                            // Last GPS update timestamp
+  created_at      DateTime   @default(now())
+  vehicle         Vehicle?   @relation(fields: [vehicle_id], references: [id])
+  driver          Driver?    @relation(fields: [driver_id], references: [id])
+  deliveries      Delivery[]
+}
+
+model Delivery {
+  id                String    @id @default(uuid())
+  sale_id           String    @unique
+  route_id          String?
+  status            String                            // PENDING, EN_RUTA, ENTREGADO, NO_ENTREGADO
+  address           String
+  lat               Float?
+  lng               Float?
+  attempt_count     Int       @default(1)             // Número de intento de entrega
+  fail_reason       String?                           // NO_ENCONTRADO, DIRECCION_INCORRECTA, RECHAZADO, OTRO
+  fail_notes        String?                           // Notas del chofer sobre la falla
+  extra_charges     Float     @default(0)             // Cargos adicionales opcionales
+  extra_charges_note String?                          // Descripción del cargo extra
+  delivered_at      DateTime?                         // Fecha/hora exacta de entrega
+  proof_notes       String?                           // Quién recibió, notas de entrega
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  route             Route?    @relation(fields: [route_id], references: [id])
+  sale              Sale      @relation(fields: [sale_id], references: [id])
+}
+
+model PurchaseOrder {
+  id              String              @id @default(uuid())
+  folio           String              @unique
+  supplier_id     String
+  status          String
+  created_at      DateTime            @default(now()) // FECHAELAB
+  document_date   DateTime?                            // FECHA_DOC
+  reception_date  DateTime?                            // FECHA_REC
+  payment_date    DateTime?                            // FECHA_PAG
+  total_amount    Float?                               // IMP_TOT4
+  subtotal        Float?                               // CAN_TOT
+  discount        Float?                               // DES_TOT
+  taxes           Float?                               // SUM(IMP_TOT1..3)
+  warehouse_id    String?                              // NUM_ALMA
+  observations    String?                              // OBS_COMP
+  supplier        Supplier            @relation(fields: [supplier_id], references: [id])
+  items           PurchaseOrderItem[]
+  receptions      Reception[]
+  warehouse       Branch?             @relation("PurchaseWarehouse", fields: [warehouse_id], references: [id])
+}
+
+model PurchaseOrderItem {
+  id                String        @id @default(uuid())
+  purchase_order_id String
+  product_id        String
+  quantity          Int
+  quantity_received Int           @default(0)
+  cost              Float?        @default(0) // COST
+  price             Float?        @default(0) // PREC
+  discount          Float?        @default(0) // DESCU
+  tax_percentage    Float?        @default(0) // IMPU1..4
+  unit              String?                   // UNI_VENTA
+  warehouse_id      String?                   // NUM_ALM
+  product           Product       @relation(fields: [product_id], references: [id])
+  purchase_order    PurchaseOrder @relation(fields: [purchase_order_id], references: [id])
+  warehouse         Branch?       @relation("PurchaseItemWarehouse", fields: [warehouse_id], references: [id])
+}
+
+model Reception {
+  id                String          @id @default(uuid())
+  purchase_order_id String
+  received_by       String
+  observations      String?         // Comentarios de la recepción (parcial/total)
+  total_amount      Float?          // Sum(qty_recibida * costo_po)
+  billed_amount     Float?          // Monto total según factura del proveedor
+  created_at        DateTime        @default(now())
+  status            String          @default("Activa") // Activa, Cancelada
+  canceled_at       DateTime?
+  canceled_by       String?
+  purchase_order    PurchaseOrder   @relation(fields: [purchase_order_id], references: [id])
+  items             ReceptionItem[]
+  payments          SupplierPayment[]
+}
+
+model ReceptionItem {
+  id           String    @id @default(uuid())
+  reception_id String
+  product_id   String
+  quantity     Int
+  cost         Float?    @default(0)
+  reception    Reception @relation(fields: [reception_id], references: [id])
+  product      Product   @relation(fields: [product_id], references: [id])
+}
+
+model FiscalClient {
+  id            String     @id @default(uuid())
+  rfc           String     @unique
+  business_name String
+  regime        String
+  cfdi_use      String
+  email         String?
+  address       String? // Deprecated o Legacy full address
+  zip_code      String?
+  street        String?
+  exterior      String?
+  interior      String?
+  colony        String?
+  municipality  String?
+  state         String?
+  customers     Customer[]
+}
+
+model CFDI {
+  id                  String    @id @default(uuid())
+  uuid                String?   @unique
+  type                String    // I: Ingreso, E: Egreso (Nota de Crédito), P: Pago
+  status              String    @default("TIMBRADO") // TIMBRADO, CANCELADO, RECHAZADO
+  xml_url             String?
+  pdf_url             String?
+  created_at          DateTime  @default(now())
+  
+  // Para Facturas Globales y Relacionadas
+  sales               Sale[]    @relation("SaleToCFDI")
+  
+  // Cancelación
+  cancellation_reason String?
+  cancellation_status String?   // 01, 02, 03, 04 (SAT)
+  canceled_at         DateTime?
+  
+  // Relaciones SAT (Sustituciones, Notas de Crédito)
+  related_uuid        String?   // UUID de la factura origen
+  relation_type       String?   // 01: Nota de crédito, 04: Sustitución, etc.
+  
+  // Montos totales del CFDI (pueden diferir de una sola venta si es consolidada)
+  total_amount        Float     @default(0)
+  subtotal            Float     @default(0)
+  taxes               Float     @default(0)
+  
+  customer_returns    CustomerReturn[]
+}
+
+model Credit {
+  id          String   @id @default(uuid())
+  customer_id String
+  amount      Int
+  balance     Int
+  due_date    DateTime
+  status      String
+  created_at  DateTime @default(now())
+  customer    Customer @relation(fields: [customer_id], references: [id])
+}
+
+model SupplierPayment {
+  id                 String    @id @default(uuid())
+  supplier_id        String
+  reception_id       String?
+  purchase_order_id  String?
+  reception_value    Float     @default(0) // Valor físico recibido
+  po_total_value     Float     @default(0) // Valor total de la OC original
+  amount             Float     @default(0) // Monto final validado por contabilidad
+  balance            Float     @default(0) // Saldo pendiente
+  status             String    @default("Por Validar") // Por Validar, Pendiente, Parcial, Pagado, Cancelado
+  due_date           DateTime?
+  created_at         DateTime  @default(now())
+  canceled_at        DateTime?
+  canceled_by        String?
+  supplier           Supplier  @relation(fields: [supplier_id], references: [id])
+  reception          Reception? @relation(fields: [reception_id], references: [id])
+  transactions      SupplierPaymentTransaction[]
+}
+
+model SupplierPaymentTransaction {
+  id                String    @id @default(uuid())
+  payment_id        String
+  amount            Float
+  payment_method    String    @default("Transferencia") // Transferencia, Efectivo, Cheque, Tarjeta
+  reference         String?
+  notes             String?
+  created_at        DateTime  @default(now())
+  status            String    @default("Activo") // Activo, Cancelado
+  canceled_at       DateTime?
+  canceled_by       String?
+  payment           SupplierPayment @relation(fields: [payment_id], references: [id])
+}
+
+model SupplierCreditNote {
+  id          String   @id @default(uuid())
+  supplier_id String
+  amount      Float
+  balance     Float
+  reason      String?
+  status      String   @default("Disponible") // Disponible, Aplicada
+  created_at  DateTime @default(now())
+  supplier    Supplier @relation(fields: [supplier_id], references: [id])
+}
+
+model CashSession {
+  id              String    @id @default(uuid())
+  user_id         String
+  opened_at       DateTime  @default(now())
+  closed_at       DateTime?
+  opening_balance Int       @default(0)
+  closing_balance Int?
+  expected_balance Int?
+  status          String    @default("OPEN") // OPEN, CLOSED
+  notes           String?
+  user            User      @relation(fields: [user_id], references: [id])
+}
+
+model User {
+  id          String    @id @default(uuid())
+  username    String    @unique
+  password    String
+  name        String
+  role        String
+  permissions String[]
+  driverId    String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+  driver      Driver?   @relation(fields: [driverId], references: [id])
+  cash_sessions CashSession[]
+}
+
+model Branch {
+  id              String   @id @default(uuid())
+  name            String
+  address         String?
+  stock           Stock[]
+  kardex          Kardex[]
+  purchaseOrders  PurchaseOrder[] @relation("PurchaseWarehouse")
+  purchaseItems   PurchaseOrderItem[] @relation("PurchaseItemWarehouse")
+  sales          Sale[] @relation("SaleWarehouse")
+  saleItems      SaleItem[] @relation("SaleItemWarehouse")
+  purchase_suggestions PurchaseSuggestion[]
+  
+  originTransfers   WarehouseTransfer[] @relation("TransferOrigin")
+  destTransfers     WarehouseTransfer[] @relation("TransferDest")
+  conversions       ProductConversion[]
+  supplier_returns  SupplierReturn[]
+  customer_returns  CustomerReturn[]
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  table_name String
+  action     String
+  user_id    String
+  old_data   Json?
+  new_data   Json?
+  timestamp  DateTime @default(now())
+}
+
+model SatRegime {
+  id          String @id @default(uuid())
+  code        String @unique
+  description String
+  applies_to  String @default("ALL") // FISICA, MORAL, ALL
+}
+
+model SatCfdiUse {
+  id          String @id @default(uuid())
+  code        String @unique
+  description String
+  applies_to  String @default("ALL") // FISICA, MORAL, ALL
+}
+
+model GeoCountry {
+  id          String @id @default(uuid())
+  code        String @unique
+  name        String
+  states      GeoState[]
+}
+
+model GeoState {
+  id          String @id @default(uuid())
+  code        String
+  name        String
+  country_id  String
+  country     GeoCountry @relation(fields: [country_id], references: [id])
+  localities  GeoLocality[]
+}
+
+model GeoLocality {
+  id          String @id @default(uuid())
+  zip_code    String
+  settlement  String
+  type        String
+  municipality String
+  state_id    String
+  state       GeoState @relation(fields: [state_id], references: [id])
+}
+
+model CColonia {
+  Id              Int     @id @default(autoincrement())
+  c_Colonia       String? @db.VarChar(20)
+  c_CodigoPostal  String? @db.VarChar(20)
+  Nombre          String? @db.VarChar(150)
+
+  @@map("c_colonia")
+}
+
+model CCp {
+  Id              Int     @id @default(autoincrement())
+  c_CP            String? @db.VarChar(50)
+  c_Estado        String? @db.VarChar(50)
+  c_Municipio     String? @db.VarChar(50)
+  c_Localidad     String? @db.VarChar(50)
+
+  @@map("c_cp")
+}
+
+model CEstado {
+  Id              Int     @id @default(autoincrement())
+  c_Estado        String? @db.VarChar(50)
+  c_Pais          String? @db.VarChar(50)
+  Descripcion     String? @db.VarChar(100)
+
+  @@map("c_estado")
+}
+
+model CMunicipio {
+  Id              Int     @id @default(autoincrement())
+  c_Municipio     String? @db.VarChar(50)
+  c_Estado        String? @db.VarChar(50)
+  Descripcion     String? @db.VarChar(100)
+
+  @@map("c_municipio")
+}
+
+model CPais {
+  Id              Int     @id @default(autoincrement())
+  c_Pais          String? @db.VarChar(50)
+  Descripcion     String? @db.VarChar(100)
+
+  @@map("c_pais")
+}
+
+model CatFormaPagoSat {
+  CveFormaPago    Int     @id @default(autoincrement())
+  c_FormaPago     String  @db.VarChar(4)
+  Descripcion     String? @db.VarChar(255)
+  Bancarizado                     String? @db.VarChar(255)
+  NumOperacion                    String? @db.VarChar(255)
+  RfcEmisorOrdenante              String? @db.VarChar(255)
+  CuentaOrdenante                 String? @db.VarChar(255)
+  PatronCuentaOrdenante           String? @map("PatrónCuentaOrdenante") @db.VarChar(255)
+  RfcEmisorBeneficiario           String? @db.VarChar(255)
+  CuentaBenenficiario             String? @db.VarChar(255)
+  PatronCuentaBeneficiaria        String? @map("PatrónCuentaBeneficiaria") @db.VarChar(255)
+  TipoCadenaPago                  String? @db.VarChar(255)
+  NombreBancoEmisorOrdenanteExtranjero String? @db.VarChar(255)
+  InicioVig                       String? @db.VarChar(10)
+  FinVig                          String? @db.VarChar(10)
+
+  @@map("catformapagosat")
+}
+
+model CatMetodoPagoSat {
+  CveMetodoPago   Int     @id @default(autoincrement())
+  c_metodopago    String  @db.VarChar(5)
+  Descripcion     String? @db.VarChar(100)
+  InicioVig       String? @db.VarChar(10)
+  FinVig          String? @db.VarChar(10)
+
+  @@map("catmetodopagosat")
+}
+
+model CatRegimenSatNuevo {
+  CveRegimen      Int     @id @default(autoincrement())
+  CveTipoEmisor   Int?
+  Regimen         String  @db.VarChar(10)
+  Descripcion     String? @db.VarChar(255)
+  Fisica          String? @db.VarChar(255)
+  Moral           String? @db.VarChar(255)
+  InicioVig       String? @db.VarChar(10)
+  FinVig          String? @db.VarChar(10)
+
+  @@map("catregimensat")
+}
+
+model CatUsoCfdiSatNuevo {
+  CveUso          Int     @id @default(autoincrement())
+  c_UsoCFDI       String  @db.VarChar(5)
+  Descripcion     String? @db.VarChar(255)
+  Persona         String? @db.VarChar(2)
+  InicioVig       String? @db.VarChar(10)
+  FinVig          String? @db.VarChar(10)
+
+  @@map("catusocfdisat")
+}
+
+model CustomerPayment {
+  id              String   @id @default(uuid())
+  customer_id     String
+  sale_id         String?
+  amount          Float    // Abono recibido
+  payment_method  String   
+  reference       String?
+  created_at      DateTime @default(now())
+  created_by      String
+  status          String   @default("APPLIED")
+  customer        Customer @relation(fields: [customer_id], references: [id])
+  sale            Sale?    @relation(fields: [sale_id], references: [id])
+}
+
+model CompanyProfile {
+  id             String   @id @default(uuid())
+  name           String   @default("CIMENTA")
+  trade_name     String?
+  rfc            String?
+  address        String?
+  phone          String?
+  email          String?
+  website        String?
+  logo_url       String?
+  app_name       String?  @default("NC INTEGRAX")
+  app_logo_url   String?
+  app_icon_url   String?
+  branding_key   String?  @default("NC-2026-ADMIN")
+  show_by_nc     Boolean  @default(true)
+  receipt_message String?
+  ticket_config  Json?    @default("{\"show_logo\":true,\"show_trade_name\":true,\"show_rfc\":true,\"show_address\":true,\"show_phone\":true,\"show_customer\":true,\"show_barcode\":true}")
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
+
+model PurchaseSuggestion {
+  id              String    @id @default(uuid())
+  product_id      String
+  supplier_id     String?
+  branch_id       String?
+  current_stock   Int       @default(0)
+  min_stock       Int       @default(0)
+  max_stock       Int       @default(0)
+  suggested_qty   Int       @default(0)      // max_stock - current_stock
+  last_cost       Int       @default(0)      // en centavos
+  status          String    @default("PENDIENTE") // PENDIENTE, EN_OC, DESCARTADA
+  triggered_by    String?                    // sale_id que disparó la alerta
+  purchase_order_id String?                  // OC donde se incluyó (si aplica)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  product         Product   @relation(fields: [product_id], references: [id])
+  supplier        Supplier? @relation(fields: [supplier_id], references: [id])
+  branch          Branch?   @relation(fields: [branch_id], references: [id])
+}
+
+// NUEVOS MODELOS DE EXTENSION DE INVENTARIOS
+model KitComponent {
+  id             String   @id @default(uuid())
+  kit_product_id String
+  component_id   String
+  quantity       Int      // Cantidad de este componente en el Kit
+  kit_product    Product  @relation("KitToProduct", fields: [kit_product_id], references: [id])
+  component      Product  @relation("ComponentToProduct", fields: [component_id], references: [id])
+
+  @@unique([kit_product_id, component_id])
+}
+
+model WarehouseTransfer {
+  id               String                 @id @default(uuid())
+  folio            String                 @unique
+  origin_branch_id String
+  dest_branch_id   String
+  status           String                 @default("EN_TRANSITO") // EN_TRANSITO, RECIBIDO, CANCELADO
+  notes            String?
+  created_by       String
+  created_at       DateTime               @default(now())
+  received_by      String?
+  received_at      DateTime?
+  origin_branch    Branch                 @relation("TransferOrigin", fields: [origin_branch_id], references: [id])
+  dest_branch      Branch                 @relation("TransferDest", fields: [dest_branch_id], references: [id])
+  items            WarehouseTransferItem[]
+}
+
+model WarehouseTransferItem {
+  id          String            @id @default(uuid())
+  transfer_id String
+  product_id  String
+  quantity    Int
+  transfer    WarehouseTransfer @relation(fields: [transfer_id], references: [id])
+  product     Product           @relation(fields: [product_id], references: [id])
+}
+
+model ProductConversion {
+  id                String   @id @default(uuid())
+  folio             String   @unique
+  branch_id         String
+  source_product_id String
+  target_product_id String
+  source_quantity   Int      // Cantidad consumida del rollo/origen
+  target_quantity   Int      // Cantidad generada en metros/destino
+  conversion_factor Float    // unit_factor en el momento de conversión
+  created_by        String
+  created_at        DateTime @default(now())
+  branch            Branch   @relation(fields: [branch_id], references: [id])
+  source_product    Product  @relation("ConversionSource", fields: [source_product_id], references: [id])
+  target_product    Product  @relation("ConversionTarget", fields: [target_product_id], references: [id])
+}
+
+model SupplierReturn {
+  id          String               @id @default(uuid())
+  folio       String               @unique
+  supplier_id String
+  branch_id   String
+  notes       String?
+  cfdi_egreso_uuid String?         // Fiscal: UUID de la NC del proveedor
+  cfdi_egreso_folio String?        // Fiscal: Folio de la NC del proveedor
+  created_by  String
+  created_at  DateTime             @default(now())
+  supplier    Supplier             @relation(fields: [supplier_id], references: [id])
+  branch      Branch               @relation(fields: [branch_id], references: [id])
+  items       SupplierReturnItem[]
+}
+
+model SupplierReturnItem {
+  id          String         @id @default(uuid())
+  return_id   String
+  product_id  String
+  quantity    Int
+  cost        Float          @default(0) // Costo al que se devuelve
+  return_order SupplierReturn @relation(fields: [return_id], references: [id])
+  product     Product        @relation(fields: [product_id], references: [id])
+}
+
+model CustomerReturn {
+  id             String               @id @default(uuid())
+  folio          String               @unique
+  customer_id    String
+  branch_id      String
+  notes          String?
+  cfdi_egreso_id String?              // Relación al CFDI timbrado de Nota de Crédito
+  created_by     String
+  created_at     DateTime             @default(now())
+  customer       Customer             @relation(fields: [customer_id], references: [id])
+  branch         Branch               @relation(fields: [branch_id], references: [id])
+  cfdi_egreso    CFDI?                @relation(fields: [cfdi_egreso_id], references: [id])
+  items          CustomerReturnItem[]
+}
+
+model CustomerReturnItem {
+  id          String         @id @default(uuid())
+  return_id   String
+  product_id  String
+  quantity    Int
+  price       Float          @default(0) // Precio al que se devuelve
+  return_order CustomerReturn @relation(fields: [return_id], references: [id])
+  product     Product        @relation(fields: [product_id], references: [id])
+}
