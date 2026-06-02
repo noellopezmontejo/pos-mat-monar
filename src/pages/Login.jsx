@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Lock, User, Key, ArrowRight, ShieldCheck, AlertCircle, Monitor } from 'lucide-react'
+import { Lock, User, Key, ArrowRight, ShieldCheck, AlertCircle, Monitor, Settings } from 'lucide-react'
 import apiClient from '../utils/apiClient'
 import { useCompany } from '../contexts/CompanyContext'
 
@@ -9,6 +9,11 @@ const Login = ({ onLogin }) => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Configuración de IP dinámica
+  const [showIpConfig, setShowIpConfig] = useState(false)
+  const [serverIp, setServerIp] = useState(localStorage.getItem('server_ip')?.replace('http://', '')?.replace('https://', '') || '')
+  
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4002'
 
   const handleSubmit = async (e) => {
@@ -34,6 +39,16 @@ const Login = ({ onLogin }) => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSaveIp = (e) => {
+    e.preventDefault()
+    if (serverIp.trim() === '') {
+      localStorage.removeItem('server_ip')
+    } else {
+      localStorage.setItem('server_ip', serverIp.trim())
+    }
+    window.location.reload()
   }
 
   const appName = profile?.app_name || 'NC INTEGRAX'
@@ -75,10 +90,65 @@ const Login = ({ onLogin }) => {
         <div className="w-full lg:w-1/2 max-w-[440px] animate-in fade-in slide-in-from-right-8 duration-1000">
           <div className="bg-slate-900/60 backdrop-blur-3xl border border-white/10 p-10 rounded-[2.5rem] shadow-2xl relative">
             
+            {/* Settings Gear Cog for IP Server configuration */}
+            <button
+              type="button"
+              onClick={() => setShowIpConfig(!showIpConfig)}
+              className="absolute top-6 right-6 p-2 text-slate-500 hover:text-white rounded-xl bg-slate-800/40 hover:bg-slate-800 border border-white/5 transition-all duration-300 z-20"
+              title="Configuración de IP de Servidor"
+            >
+              <Settings size={18} className={`transition-transform duration-500 ${showIpConfig ? 'rotate-90 text-primary-400' : ''}`} />
+            </button>
+
             {/* Mobile Header (Hidden on LG) */}
             <div className="lg:hidden text-center mb-8">
                <h1 className="text-3xl font-black text-white tracking-tighter">{appName}</h1>
             </div>
+
+            {/* Config panel if settings is open */}
+            {showIpConfig && (
+              <div className="mb-6 p-5 bg-slate-950/60 border border-white/10 rounded-2xl animate-in slide-in-from-top-4 duration-300 space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Monitor className="text-primary-400 shrink-0" size={18} />
+                  <h3 className="text-xs font-black text-white uppercase tracking-wider">Dirección IP del Servidor</h3>
+                </div>
+                
+                <p className="text-[11px] text-slate-400 font-bold leading-normal">
+                  Ingresa la IP o Host del servidor (ej: <code className="text-primary-300">192.168.1.175:4002</code> o el nombre de dominio).
+                </p>
+
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Ej: 192.168.1.175:4002"
+                    className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-xl outline-none focus:border-primary-500 text-white font-mono text-sm placeholder:text-slate-700 transition-all"
+                    value={serverIp}
+                    onChange={(e) => setServerIp(e.target.value)}
+                  />
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.removeItem('server_ip');
+                        setServerIp('');
+                        window.location.reload();
+                      }}
+                      className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all"
+                    >
+                      Por Defecto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveIp}
+                      className="flex-1 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-[10px] font-black tracking-widest uppercase transition-all"
+                    >
+                      Guardar IP
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">

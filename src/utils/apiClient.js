@@ -1,8 +1,19 @@
 import axios from 'axios';
 
-// Obtener la URL de la API desde las variables de entorno de Vite o usar el valor por defecto
-// En Android/PWA se DEBE usar la IP local (ej. 192.168.1.141) no localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4002';
+// Obtener la URL de la API de forma dinámica (soporta IP flexible en localStorage para PCs clientes)
+export const getApiUrl = () => {
+  const savedIp = localStorage.getItem('server_ip');
+  if (savedIp) {
+    let baseIp = savedIp.trim();
+    if (!baseIp.startsWith('http://') && !baseIp.startsWith('https://')) {
+      baseIp = `http://${baseIp}`;
+    }
+    return baseIp;
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:4002';
+};
+
+const API_URL = getApiUrl();
 
 const apiClient = axios.create({
   baseURL: API_URL,
