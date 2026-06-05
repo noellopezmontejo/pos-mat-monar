@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
-const isDev = true; // Forzando modo de desarrollo para conectar a Vite
+const isDev = false; // Desactivar modo de desarrollo para producción (Cargar dist)
 
 function createWindow() {
   const win = new BrowserWindow({

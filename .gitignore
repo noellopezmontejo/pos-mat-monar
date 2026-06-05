@@ -24,6 +24,7 @@ node_modules/
 # Directorios de Build
 dist/
 dist-ssr/
+dist-electron/
 *.local
 
 # Variables de entorno y credenciales (¡Seguridad!)

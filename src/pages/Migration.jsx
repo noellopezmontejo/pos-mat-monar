@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Database, AlertTriangle, CheckCircle, RefreshCw, Server, ArrowRight } from 'lucide-react'
-import axios from 'axios'
+import apiClient, { getApiUrl } from '../utils/apiClient'
 
 const Migration = () => {
   const [config, setConfig] = useState({
@@ -20,7 +20,8 @@ const Migration = () => {
   const [selectedYear, setSelectedYear] = useState('Todos')
 
   React.useEffect(() => {
-    const eventSource = new EventSource('http://localhost:3001/api/migration/progress');
+    const baseUrl = getApiUrl();
+    const eventSource = new EventSource(`${baseUrl}/api/migration/progress`);
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
       setProgress(data);
@@ -41,7 +42,7 @@ const Migration = () => {
 
     try {
       setProgress({ current: 0, total: 0, message: 'Iniciando...' })
-      const res = await axios.post('http://localhost:3001/api/migration/start', {
+      const res = await apiClient.post('/api/migration/start', {
         config,
         entity,
         year: selectedYear
@@ -50,7 +51,7 @@ const Migration = () => {
       })
       appendLog(`âœ… Éxito: ${res.data.report.message}`, 'success')
     } catch (err) {
-      appendLog(`âŒ Error en ${label}: ${err.response?.data?.error || err.message}`, 'error')
+      appendLog(`â Œ Error en ${label}: ${err.response?.data?.error || err.message}`, 'error')
     } finally {
       setLoadingEntity(null)
     }
@@ -60,11 +61,11 @@ const Migration = () => {
     setLoadingEntity('test')
     appendLog(`Verificando conectividad con servidor SQL ${config.server}...`, 'info')
     try {
-      const res = await axios.post('http://localhost:3001/api/migration/test-connection', { config })
+      const res = await apiClient.post('/api/migration/test-connection', { config })
       appendLog(`âœ… Éxito: ${res.data.message}`, 'success')
       alert(res.data.message)
     } catch (err) {
-      appendLog(`âŒ Error conectando: ${err.response?.data?.error || err.message}`, 'error')
+      appendLog(`â Œ Error conectando: ${err.response?.data?.error || err.message}`, 'error')
       alert(`Error: ${err.response?.data?.error || err.message}`)
     } finally {
       setLoadingEntity(null)
