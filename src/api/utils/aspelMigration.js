@@ -7,7 +7,11 @@ let pool = null;
 const connectToAspel = async (config) => {
   try {
     if (pool) return true;
-    pool = await sql.connect({ ...config, requestTimeout: 3600000 })
+    pool = await sql.connect({ 
+      ...config, 
+      connectionTimeout: 300000, // 5 minutos de tiempo de espera para conectar bajo carga
+      requestTimeout: 3600000    // 1 hora de tiempo de espera para consultas largas
+    })
     return true
   } catch (err) {
     console.error('ASPEL connection failed:', err)
