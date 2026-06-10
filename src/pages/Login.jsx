@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Lock, User, Key, ArrowRight, ShieldCheck, AlertCircle, Monitor, Settings } from 'lucide-react'
+import { Lock, User, Key, ArrowRight, ShieldCheck, AlertCircle, Monitor, Settings, Download } from 'lucide-react'
 import apiClient from '../utils/apiClient'
 import { useCompany } from '../contexts/CompanyContext'
 
@@ -205,6 +205,19 @@ const Login = ({ onLogin }) => {
                 )}
               </button>
             </form>
+
+            {/* Link de Descarga de App Desktop */}
+            <div className="mt-6 text-center animate-in fade-in duration-700 delay-300">
+              <a 
+                href="/uploads/PosMatMonar_Setup.exe" 
+                download="PosMatMonar_Setup.exe"
+                className="inline-flex items-center space-x-2 text-xs font-black text-slate-400 hover:text-white transition-all bg-slate-800/40 hover:bg-slate-800/80 border border-white/5 px-4 py-3 rounded-2xl w-full justify-center group/btn"
+                title="Descargar instalador para Windows (Soporta 32 y 64 bits)"
+              >
+                <Download size={14} className="text-primary-400 group-hover/btn:-translate-y-0.5 transition-transform" />
+                <span>Instalador Windows (x86/x64)</span>
+              </a>
+            </div>
 
             <div className="mt-8 text-center border-t border-white/5 pt-6">
               <h2 className="text-white font-black tracking-tighter text-lg mb-1">{appName}</h2>
