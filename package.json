@@ -20,7 +20,7 @@
     "clean-kardex": "node scripts/clean-5-kardex.js",
     "build": "vite build",
     "preview": "vite preview",
-    "package": "vite build && electron-builder --windows"
+    "package": "vite build && electron-builder --win --x64 --ia32"
   },
   "build": {
     "appId": "com.posmatmonar.app",
@@ -34,7 +34,15 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
