@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import axios from 'axios'
+import { getApiUrl } from '../utils/apiClient'
 
 const CompanyContext = createContext()
 
@@ -8,9 +9,9 @@ export const useCompany = () => useContext(CompanyContext)
 export const CompanyProvider = ({ children }) => {
   const [profile, setProfile] = useState({ name: 'CIMENTA' })
   const [loading, setLoading] = useState(true)
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4002'
 
   const fetchProfile = async () => {
+    const apiUrl = getApiUrl()
     try {
       const token = localStorage.getItem('token')
       const headers = {}
@@ -18,7 +19,10 @@ export const CompanyProvider = ({ children }) => {
         headers.Authorization = `Bearer ${token}`
       }
       
-      const res = await axios.get(`${apiUrl}/api/config/profile`, { headers })
+      const res = await axios.get(`${apiUrl}/api/config/profile`, { 
+        headers,
+        timeout: 3500
+      })
       if (res.data) setProfile(res.data)
     } catch (error) {
       console.error('Error fetching company profile:', error)

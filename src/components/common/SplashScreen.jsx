@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useCompany } from '../../contexts/CompanyContext';
+import { getApiUrl } from '../../utils/apiClient';
 
 const SplashScreen = ({ onFinish }) => {
   const { profile, loading: profileLoading } = useCompany();
   const [fadeOut, setFadeOut] = useState(false);
   const [canFinish, setCanFinish] = useState(false);
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4002';
+  const apiUrl = getApiUrl();
 
   useEffect(() => {
     const timer = setTimeout(() => {
