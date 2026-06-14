@@ -8,6 +8,8 @@ const SplashScreen = ({ onFinish }) => {
   const [canFinish, setCanFinish] = useState(false);
   const apiUrl = getApiUrl();
 
+  console.log('[SplashScreen Render] canFinish:', canFinish, 'profileLoading:', profileLoading, 'fadeOut:', fadeOut);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setCanFinish(true);
