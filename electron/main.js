@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
-const isDev = false; // Desactivar modo de desarrollo para producción (Cargar dist)
+const isDev = !app.isPackaged; // Detecta automáticamente si está empaquetado o en desarrollo
 
 function createWindow() {
   const win = new BrowserWindow({
