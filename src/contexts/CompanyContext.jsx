@@ -12,6 +12,7 @@ export const CompanyProvider = ({ children }) => {
 
   const fetchProfile = async () => {
     const apiUrl = getApiUrl()
+    console.log('[CompanyContext Debug] Starting fetchProfile. URL:', `${apiUrl}/api/config/profile`);
     try {
       const token = localStorage.getItem('token')
       const headers = {}
@@ -19,14 +20,17 @@ export const CompanyProvider = ({ children }) => {
         headers.Authorization = `Bearer ${token}`
       }
       
+      console.log('[CompanyContext Debug] Sending axios.get request...');
       const res = await axios.get(`${apiUrl}/api/config/profile`, { 
         headers,
         timeout: 3500
       })
+      console.log('[CompanyContext Debug] Request success. Data:', res.data);
       if (res.data) setProfile(res.data)
     } catch (error) {
-      console.error('Error fetching company profile:', error)
+      console.error('[CompanyContext Debug] Request error:', error)
     } finally {
+      console.log('[CompanyContext Debug] Setting loading to false');
       setLoading(false)
     }
   }
