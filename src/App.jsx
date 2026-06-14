@@ -90,11 +90,17 @@ function AppContent({ token, setToken }) {
 }
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'))
+  const [token, setToken] = useState(() => {
+    const t = localStorage.getItem('token')
+    const u = localStorage.getItem('user')
+    return t && u ? t : null
+  })
 
   useEffect(() => {
     const handleStorageChange = () => {
-      setToken(localStorage.getItem('token'))
+      const t = localStorage.getItem('token')
+      const u = localStorage.getItem('user')
+      setToken(t && u ? t : null)
     }
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
