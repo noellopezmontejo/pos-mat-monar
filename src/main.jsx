@@ -107,7 +107,10 @@ const rewriteImg = (img) => {
       if (!pathname.startsWith('/')) {
         pathname = '/' + pathname
       }
-      img.setAttribute('src', `${baseIp}${pathname}${search}`)
+      const targetSrc = `${baseIp}${pathname}${search}`
+      if (src !== targetSrc) {
+        img.setAttribute('src', targetSrc)
+      }
     } catch (e) {}
   }
 }
