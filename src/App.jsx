@@ -34,10 +34,39 @@ function RootRedirect() {
     const user = JSON.parse(userStr)
     if (user.role === 'Almacenista') return <Navigate to="/almacen" replace />
     if (user.role === 'Chofer') return <Navigate to="/chofer" replace />
+    if (user.role === 'Vendedor Mostrador' || user.role === 'Vendedor Cajero') return <Navigate to="/punto-venta" replace />
+    if (user.role === 'Facturista') return <Navigate to="/facturacion" replace />
+    if (user.role === 'Área Contable') return <Navigate to="/caja" replace />
     return <Navigate to="/dashboard" replace />
   } catch (e) {
     return <Navigate to="/login" replace />
   }
+}
+
+const isRouteAllowed = (path, role) => {
+  if (role === 'Administrador') return true;
+  if (role === 'Gerente') {
+    return path !== '/usuarios' && path !== '/migracion' && path !== '/configuracion';
+  }
+  if (role === 'Vendedor Mostrador') {
+    return path === '/' || path === '/punto-venta' || path === '/clientes';
+  }
+  if (role === 'Vendedor Cajero') {
+    return path === '/' || path === '/punto-venta' || path === '/caja' || path === '/clientes';
+  }
+  if (role === 'Facturista') {
+    return path === '/' || path === '/facturacion' || path === '/punto-venta' || path === '/clientes';
+  }
+  if (role === 'Área Contable') {
+    return path === '/' || path === '/caja' || path === '/cobranza' || path === '/cuentas-por-pagar' || path === '/facturacion' || path === '/reportes';
+  }
+  if (role === 'Almacenista') {
+    return path === '/' || path === '/almacen';
+  }
+  if (role === 'Chofer') {
+    return path === '/' || path === '/chofer';
+  }
+  return false;
 }
 
 function AppContent({ token, setToken }) {
@@ -58,31 +87,38 @@ function AppContent({ token, setToken }) {
     )
   }
 
+  const userStr = localStorage.getItem('user')
+  let role = 'Invitado'
+  try {
+    if (userStr) role = JSON.parse(userStr).role
+  } catch (e) {}
+
   return (
     <Router>
       <Layout>
         <Routes>
           <Route path="/" element={<RootRedirect />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/punto-venta" element={<DirectSalesPOS />} />
-          <Route path="/ventas-especiales" element={<SpecialSalesPOS />} />
-          <Route path="/inventario" element={<Inventory />} />
-          <Route path="/clientes" element={<Customers />} />
-          <Route path="/logistica" element={<Logistics />} />
-          <Route path="/chofer" element={<DriverPWA />} />
-          <Route path="/almacen" element={<WarehousePWA />} />
-          <Route path="/ventas-pwa" element={<SalesPWA />} />
-          <Route path="/ordenes-pwa" element={<OrdersPWA />} />
-          <Route path="/facturacion" element={<Facturacion />} />
-          <Route path="/compras" element={<Purchases />} />
-          <Route path="/usuarios" element={<UsersPage />} />
-          <Route path="/cuentas-por-pagar" element={<AccountsPayable />} />
-          <Route path="/caja" element={<CashRegister />} />
-          <Route path="/cobranza" element={<Collections />} />
-          <Route path="/reportes" element={<Reports />} />
-          <Route path="/configuracion" element={<Settings />} />
-          <Route path="/migracion" element={<Migration />} />
+          {isRouteAllowed('/dashboard', role) && <Route path="/dashboard" element={<Dashboard />} />}
+          {isRouteAllowed('/punto-venta', role) && <Route path="/punto-venta" element={<DirectSalesPOS />} />}
+          {isRouteAllowed('/ventas-especiales', role) && <Route path="/ventas-especiales" element={<SpecialSalesPOS />} />}
+          {isRouteAllowed('/inventario', role) && <Route path="/inventario" element={<Inventory />} />}
+          {isRouteAllowed('/clientes', role) && <Route path="/clientes" element={<Customers />} />}
+          {isRouteAllowed('/logistica', role) && <Route path="/logistica" element={<Logistics />} />}
+          {isRouteAllowed('/chofer', role) && <Route path="/chofer" element={<DriverPWA />} />}
+          {isRouteAllowed('/almacen', role) && <Route path="/almacen" element={<WarehousePWA />} />}
+          {isRouteAllowed('/ventas-pwa', role) && <Route path="/ventas-pwa" element={<SalesPWA />} />}
+          {isRouteAllowed('/ordenes-pwa', role) && <Route path="/ordenes-pwa" element={<OrdersPWA />} />}
+          {isRouteAllowed('/facturacion', role) && <Route path="/facturacion" element={<Facturacion />} />}
+          {isRouteAllowed('/compras', role) && <Route path="/compras" element={<Purchases />} />}
+          {isRouteAllowed('/usuarios', role) && <Route path="/usuarios" element={<UsersPage />} />}
+          {isRouteAllowed('/cuentas-por-pagar', role) && <Route path="/cuentas-por-pagar" element={<AccountsPayable />} />}
+          {isRouteAllowed('/caja', role) && <Route path="/caja" element={<CashRegister />} />}
+          {isRouteAllowed('/cobranza', role) && <Route path="/cobranza" element={<Collections />} />}
+          {isRouteAllowed('/reportes', role) && <Route path="/reportes" element={<Reports />} />}
+          {isRouteAllowed('/configuracion', role) && <Route path="/configuracion" element={<Settings />} />}
+          {isRouteAllowed('/migracion', role) && <Route path="/migracion" element={<Migration />} />}
           <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
     </Router>

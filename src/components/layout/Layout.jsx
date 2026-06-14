@@ -23,6 +23,32 @@ const SidebarItem = ({ icon: Icon, label, href, active, collapsed, onClick }) =>
   </Link>
 )
 
+const isMenuItemAllowed = (href, role) => {
+  if (role === 'Administrador') return true;
+  if (role === 'Gerente') {
+    return href !== '/usuarios' && href !== '/migracion' && href !== '/configuracion';
+  }
+  if (role === 'Vendedor Mostrador') {
+    return href === '/punto-venta' || href === '/clientes';
+  }
+  if (role === 'Vendedor Cajero') {
+    return href === '/punto-venta' || href === '/caja' || href === '/clientes';
+  }
+  if (role === 'Facturista') {
+    return href === '/facturacion' || href === '/punto-venta' || href === '/clientes';
+  }
+  if (role === 'Área Contable') {
+    return href === '/caja' || href === '/cobranza' || href === '/cuentas-por-pagar' || href === '/facturacion' || href === '/reportes';
+  }
+  if (role === 'Almacenista') {
+    return href === '/almacen';
+  }
+  if (role === 'Chofer') {
+    return href === '/chofer';
+  }
+  return false;
+}
+
 const Layout = ({ children }) => {
   const location = useLocation()
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -82,7 +108,7 @@ const Layout = ({ children }) => {
         >
           {isCollapsed ? <ChevronRight size={14}/> : <ChevronLeft size={14}/>}
         </button>
-
+ 
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3 text-left'} px-2 overflow-hidden`}>
           {appIcon ? (
              <img src={appIcon} alt="App Icon" className="w-10 h-10 object-contain rounded-xl shadow-sm bg-white p-1" />
@@ -100,7 +126,7 @@ const Layout = ({ children }) => {
         </div>
         
         <nav className="flex-grow space-y-1 custom-scrollbar overflow-y-auto px-1">
-          {menuItems.map((item) => (
+          {menuItems.filter(item => isMenuItemAllowed(item.href, user.role)).map((item) => (
             <SidebarItem 
               key={item.href} 
               {...item} 
@@ -111,13 +137,15 @@ const Layout = ({ children }) => {
         </nav>
         
         <div className="pt-6 border-t border-gray-100 space-y-1">
-          <SidebarItem 
-            icon={Settings} 
-            label="Configuración" 
-            href="/configuracion" 
-            active={location.pathname === '/configuracion'} 
-            collapsed={isCollapsed} 
-          />
+          {isMenuItemAllowed('/configuracion', user.role) && (
+            <SidebarItem 
+              icon={Settings} 
+              label="Configuración" 
+              href="/configuracion" 
+              active={location.pathname === '/configuracion'} 
+              collapsed={isCollapsed} 
+            />
+          )}
           <button 
             onClick={() => {
               localStorage.removeItem('token')
