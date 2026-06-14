@@ -17,7 +17,9 @@ const SplashScreen = ({ onFinish }) => {
   }, []);
 
   useEffect(() => {
+    console.log('[SplashScreen Debug] canFinish:', canFinish, 'profileLoading:', profileLoading);
     if (canFinish && !profileLoading) {
+      console.log('[SplashScreen Debug] Triggering fadeOut and onFinish');
       setFadeOut(true);
       const timer = setTimeout(onFinish, 800);
       return () => clearTimeout(timer);
