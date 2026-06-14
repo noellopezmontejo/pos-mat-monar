@@ -122,7 +122,8 @@ const Layout = ({ children }) => {
             onClick={() => {
               localStorage.removeItem('token')
               localStorage.removeItem('user')
-              window.location.href = '/login'
+              window.location.hash = '#/login'
+              window.location.reload()
             }}
             className={`flex items-center ${isCollapsed ? 'justify-center space-x-0' : 'space-x-3'} p-3 rounded-xl text-red-500 hover:bg-red-50 w-full transition-all duration-200`}
           >

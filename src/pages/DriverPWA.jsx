@@ -57,7 +57,8 @@ const DriverSelectScreen = ({ onSelect }) => {
           onClick={() => {
             localStorage.removeItem('token')
             localStorage.removeItem('user')
-            window.location.href = '/login'
+            window.location.hash = '#/login'
+            window.location.reload()
           }}
           className="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 active:bg-white/20 rounded-2xl border border-white/5 transition-all flex items-center gap-2 group"
         >
@@ -161,7 +162,8 @@ const RouteOverviewScreen = ({ driver, onBack, onSelectRoute }) => {
               onClick={() => {
                 localStorage.removeItem('token')
                 localStorage.removeItem('user')
-                window.location.href = '/login'
+                window.location.hash = '#/login'
+                window.location.reload()
               }}
               className="p-2.5 bg-white/10 rounded-xl hover:bg-white/20 active:bg-white/30 border border-white/10 flex items-center gap-2 transition-all"
             >
@@ -494,7 +496,8 @@ const RouteDetailScreen = ({ route: initialRoute, onBack }) => {
               onClick={() => {
                 localStorage.removeItem('token')
                 localStorage.removeItem('user')
-                window.location.href = '/login'
+                window.location.hash = '#/login'
+                window.location.reload()
               }}
               className="p-2 bg-white/10 rounded-xl hover:bg-white/20 active:bg-white/30 border border-white/10 flex items-center gap-2"
             >

@@ -126,7 +126,8 @@ const POS = () => {
       if (error.response?.status === 403 || error.response?.status === 401) {
         alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        window.location.hash = '#/login';
+        window.location.reload();
         return;
       }
       const serverError = error.response?.data?.error || error.message;

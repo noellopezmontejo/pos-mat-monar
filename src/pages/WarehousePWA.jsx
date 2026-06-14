@@ -215,7 +215,8 @@ export default function WarehousePWA() {
             onClick={() => {
               localStorage.removeItem('token')
               localStorage.removeItem('user')
-              window.location.href = '/login'
+              window.location.hash = '#/login'
+              window.location.reload()
             }}
             className="flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-lg transition-all text-white border border-white/10"
           >
