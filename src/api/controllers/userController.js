@@ -19,7 +19,7 @@ const createUser = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10)
     const user = await prisma.user.create({
-      data: { username, password: hashedPassword, name, role, driverId, permissions: [] },
+      data: { username, password: hashedPassword, name, role, driverId: driverId || null, permissions: [] },
       select: { id: true, username: true, name: true, role: true, driverId: true }
     })
     res.status(201).json(user)
@@ -34,7 +34,7 @@ const updateUser = async (req, res) => {
   const { id } = req.params
   const { name, role, password, driverId } = req.body
   try {
-    const data = { name, role, driverId }
+    const data = { name, role, driverId: driverId || null }
     if (password) data.password = await bcrypt.hash(password, 10)
 
     const user = await prisma.user.update({
