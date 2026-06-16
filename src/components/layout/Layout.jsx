@@ -31,6 +31,9 @@ const isMenuItemAllowed = (href, role) => {
   if (role === 'Vendedor Mostrador') {
     return href === '/punto-venta' || href === '/clientes';
   }
+  if (role === 'Vendedor Mostrador Especial') {
+    return href === '/ventas-especiales' || href === '/clientes';
+  }
   if (role === 'Vendedor Cajero') {
     return href === '/punto-venta' || href === '/caja' || href === '/clientes';
   }

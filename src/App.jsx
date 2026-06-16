@@ -35,6 +35,7 @@ function RootRedirect() {
     if (user.role === 'Almacenista') return <Navigate to="/almacen" replace />
     if (user.role === 'Chofer') return <Navigate to="/chofer" replace />
     if (user.role === 'Vendedor Mostrador' || user.role === 'Vendedor Cajero') return <Navigate to="/punto-venta" replace />
+    if (user.role === 'Vendedor Mostrador Especial') return <Navigate to="/ventas-especiales" replace />
     if (user.role === 'Facturista') return <Navigate to="/facturacion" replace />
     if (user.role === 'Área Contable') return <Navigate to="/caja" replace />
     return <Navigate to="/dashboard" replace />
@@ -50,6 +51,9 @@ const isRouteAllowed = (path, role) => {
   }
   if (role === 'Vendedor Mostrador') {
     return path === '/' || path === '/punto-venta' || path === '/clientes';
+  }
+  if (role === 'Vendedor Mostrador Especial') {
+    return path === '/' || path === '/ventas-especiales' || path === '/clientes';
   }
   if (role === 'Vendedor Cajero') {
     return path === '/' || path === '/punto-venta' || path === '/caja' || path === '/clientes';

@@ -28,6 +28,7 @@ const UsersPage = () => {
     'Administrador',
     'Gerente',
     'Vendedor Mostrador',
+    'Vendedor Mostrador Especial',
     'Vendedor Cajero',
     'Facturista',
     'Almacenista',
