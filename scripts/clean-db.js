@@ -61,30 +61,56 @@ async function cleanDatabase() {
     const excludeSet = new Set(excludeTables.map(t => t.toLowerCase()));
 
     // Filtrar las tablas que vamos a borrar y ponerles comillas dobles para SQL seguro
-    const tablesToDelete = allTables
+    let pendingTables = allTables
       .filter(t => !excludeSet.has(t.toLowerCase()))
       .map(t => `"${t}"`);
 
-    if (tablesToDelete.length === 0) {
+    if (pendingTables.length === 0) {
       console.log('✅ No hay tablas que requieran limpieza.');
       return;
     }
 
-    console.log(`- Tablas identificadas para limpiar (${tablesToDelete.length}):`);
-    console.log(tablesToDelete.join(', '));
+    console.log(`- Tablas identificadas para limpiar (${pendingTables.length}):`);
+    console.log(pendingTables.join(', '));
 
-    // 4. Activar modo réplica temporalmente para evitar restricciones de clave foránea al borrar
-    console.log(`- Desactivando restricciones temporalmente (modo réplica)...`);
-    await prisma.$executeRawUnsafe(`SET session_replication_role = 'replica';`);
+    console.log(`- Borrando datos de las tablas de forma secuencial y resolviendo dependencias...`);
+    
+    let iteration = 1;
+    while (pendingTables.length > 0) {
+      const startCount = pendingTables.length;
+      const failedTables = [];
 
-    console.log(`- Borrando datos de las tablas...`);
-    for (const table of tablesToDelete) {
-      await prisma.$executeRawUnsafe(`DELETE FROM ${table};`);
+      for (const table of pendingTables) {
+        try {
+          await prisma.$executeRawUnsafe(`DELETE FROM ${table};`);
+        } catch (err) {
+          const isForeignKeyError = 
+            (err.meta && err.meta.code === '23503') ||
+            (err.message && (
+              err.message.includes('23503') || 
+              err.message.includes('foreign key') || 
+              err.message.includes('llave foránea') || 
+              err.message.includes('referida') || 
+              err.message.includes('violates')
+            ));
+
+          if (isForeignKeyError) {
+            failedTables.push(table);
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      pendingTables = failedTables;
+
+      // Si en una iteración completa no logramos borrar ninguna tabla, hay una dependencia circular o bloqueo irresoluble
+      if (pendingTables.length === startCount) {
+        throw new Error(`Dependencia circular o bloqueo irresoluble detectado. Tablas restantes: ${pendingTables.join(', ')}`);
+      }
+
+      iteration++;
     }
-
-    // 5. Restaurar el rol de replicación a origin
-    console.log(`- Restaurando restricciones (modo origen)...`);
-    await prisma.$executeRawUnsafe(`SET session_replication_role = 'origin';`);
 
     console.log('✅ Base de datos reseteada exitosamente.');
     console.log('💡 Se conservaron los usuarios, roles, sucursales y catálogos estáticos sin referencias huérfanas.');
@@ -97,5 +123,6 @@ async function cleanDatabase() {
 }
 
 cleanDatabase();
+
 
 
