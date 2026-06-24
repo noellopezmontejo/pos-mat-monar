@@ -17,5 +17,6 @@ router.get('/sales', reportsController.getSalesByStatusReport)
 router.get('/cash-sessions', reportsController.getCashSessionsReport)
 router.get('/customer-collections', reportsController.getCustomerCollectionsReport)
 router.get('/accounts-receivable', reportsController.getAccountsReceivableReport)
+router.get('/dashboard-stats', reportsController.getDashboardStats)
 
 module.exports = router

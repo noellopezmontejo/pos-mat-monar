@@ -328,6 +328,163 @@ const getAccountsReceivableReport = async (req, res) => {
   }
 }
 
+const getDashboardStats = async (req, res) => {
+  try {
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+
+    const startOfYesterday = new Date(startOfToday)
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1)
+    const endOfYesterday = new Date(endOfToday)
+    endOfYesterday.setDate(endOfYesterday.getDate() - 1)
+
+    // 1. Sales of the Day vs Yesterday (amounts in cents divided by 100 for display)
+    const todaySales = await prisma.sale.aggregate({
+      where: {
+        created_at: { gte: startOfToday, lte: endOfToday },
+        status: { not: 'CANCELLED' }
+      },
+      _sum: { total_amount: true }
+    })
+    const todaySalesAmount = (todaySales._sum.total_amount || 0) / 100
+
+    const yesterdaySales = await prisma.sale.aggregate({
+      where: {
+        created_at: { gte: startOfYesterday, lte: endOfYesterday },
+        status: { not: 'CANCELLED' }
+      },
+      _sum: { total_amount: true }
+    })
+    const yesterdaySalesAmount = (yesterdaySales._sum.total_amount || 0) / 100
+
+    let salesTrend = 0
+    if (yesterdaySalesAmount > 0) {
+      salesTrend = parseFloat((((todaySalesAmount - yesterdaySalesAmount) / yesterdaySalesAmount) * 100).toFixed(1))
+    } else if (todaySalesAmount > 0) {
+      salesTrend = 100.0
+    }
+
+    // 2. New Customers (created today vs yesterday)
+    const todayCustomers = await prisma.customer.count({
+      where: {
+        created_at: { gte: startOfToday, lte: endOfToday },
+        deleted_at: null
+      }
+    })
+    const yesterdayCustomers = await prisma.customer.count({
+      where: {
+        created_at: { gte: startOfYesterday, lte: endOfYesterday },
+        deleted_at: null
+      }
+    })
+    const totalCustomers = await prisma.customer.count({
+      where: { deleted_at: null }
+    })
+
+    let customersTrend = 0
+    if (yesterdayCustomers > 0) {
+      customersTrend = parseFloat((((todayCustomers - yesterdayCustomers) / yesterdayCustomers) * 100).toFixed(1))
+    } else if (todayCustomers > 0) {
+      customersTrend = 100.0
+    }
+
+    // 3. Low Stock count (using raw PostgreSQL query for speed)
+    const lowStockRaw = await prisma.$queryRaw`
+      SELECT COUNT(*)::int as count FROM "Product" p
+      WHERE p.status = 'Activo' AND p.is_service = false AND p.deleted_at IS NULL
+      AND (
+        SELECT COALESCE(SUM(s.quantity), 0) FROM "Stock" s WHERE s.product_id = p.id
+      ) <= p.min_stock
+    `
+    const lowStockCount = lowStockRaw[0]?.count || 0
+
+    // 4. Pending Advances & Pending Collections
+    const pendingAdvances = await prisma.sale.count({
+      where: {
+        type: 'ADVANCE',
+        status: { in: ['PENDING', 'PENDIENTE'] }
+      }
+    })
+
+    const pendingCollections = await prisma.sale.count({
+      where: {
+        status: { in: ['PENDING', 'PENDIENTE', 'PENDIENTE_COBRO', 'COBRADO_CHOFER'] }
+      }
+    })
+
+    // 5. Critical Alerts: top 5 products with stock below min_stock
+    const criticalStockItems = await prisma.$queryRaw`
+      SELECT p.id, p.name, p.min_stock, COALESCE(SUM(s.quantity), 0)::int as total_stock
+      FROM "Product" p
+      LEFT JOIN "Stock" s ON s.product_id = p.id
+      WHERE p.status = 'Activo' AND p.is_service = false AND p.deleted_at IS NULL
+      GROUP BY p.id, p.name, p.min_stock
+      HAVING COALESCE(SUM(s.quantity), 0) <= p.min_stock
+      ORDER BY COALESCE(SUM(s.quantity), 0) ASC, p.min_stock DESC
+      LIMIT 5
+    `
+
+    // 6. Weekly Sales Performance (last 7 days including today)
+    const sevenDaysAgo = new Date(startOfToday)
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+
+    const weeklySalesRaw = await prisma.sale.findMany({
+      where: {
+        created_at: { gte: sevenDaysAgo },
+        status: { not: 'CANCELLED' }
+      },
+      select: {
+        created_at: true,
+        total_amount: true
+      }
+    })
+
+    const formatLocalDate = (date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      return `${y}-${m}-${d}`
+    }
+
+    const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+    const weeklySales = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(startOfToday)
+      d.setDate(d.getDate() - i)
+      
+      const dateStr = formatLocalDate(d)
+      const daySales = weeklySalesRaw.filter(sale => {
+        return formatLocalDate(sale.created_at) === dateStr
+      })
+      
+      const dayAmount = daySales.reduce((sum, s) => sum + (s.total_amount || 0), 0)
+
+      weeklySales.push({
+        date: dateStr,
+        dayName: daysOfWeek[d.getDay()],
+        amount: dayAmount / 100
+      })
+    }
+
+    res.json({
+      salesToday: todaySalesAmount,
+      salesTodayTrend: salesTrend,
+      newCustomersToday: todayCustomers,
+      newCustomersTrend: customersTrend,
+      totalCustomers,
+      lowStockCount,
+      pendingAdvances,
+      pendingCollections,
+      criticalStockItems,
+      weeklySales
+    })
+  } catch (error) {
+    console.error('getDashboardStats Error:', error)
+    res.status(500).json({ error: 'Error al obtener estadísticas del dashboard' })
+  }
+}
+
 module.exports = {
   getProductsReport,
   getInventoryReport,
@@ -339,5 +496,6 @@ module.exports = {
   getSalesByStatusReport,
   getCashSessionsReport,
   getCustomerCollectionsReport,
-  getAccountsReceivableReport
+  getAccountsReceivableReport,
+  getDashboardStats
 }
