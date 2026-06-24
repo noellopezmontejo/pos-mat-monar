@@ -5,19 +5,6 @@ async function cleanDatabase() {
   console.log('🚀 Iniciando limpieza dinámica de base de datos...');
 
   try {
-    // 1. Matar conexiones activas para evitar candados (locks)
-    console.log('- Forzando cierre de otras conexiones abiertas (Matando candados)...');
-    try {
-      await prisma.$executeRawUnsafe(`
-        SELECT pg_terminate_backend(pid) 
-        FROM pg_stat_activity 
-        WHERE datname = current_database() 
-        AND pid <> pg_backend_pid();
-      `);
-    } catch (e) {
-      // Ignorar si no se puede matar alguna conexión
-    }
-
     // Timeout corto de bloqueo para evitar quedarse colgado
     await prisma.$executeRawUnsafe(`SET lock_timeout = '10s';`);
 
