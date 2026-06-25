@@ -453,15 +453,35 @@ const importProducts = async (onProgress) => {
 const importPurchases = async (onProgress, year = '01') => {
   try {
     let count = 0;
-    const yearFilter = (year === '00' || year === 'Todos' || !year) ? '01' : year;
-    
-    const companyId = parseInt(yearFilter);
+    let tableSuffix = '01';
+    let yearToFilter = null;
+
+    if (year && String(year).match(/^\d{4}$/)) {
+      yearToFilter = parseInt(year);
+    } else if (year && year !== 'Todos' && year !== '00') {
+      tableSuffix = String(year).padStart(2, '0');
+    }
+
+    const companyId = parseInt(tableSuffix);
     let totalComp = 0, totalPty = 0;
+
+    let headersQuery = `SELECT * FROM COMP${tableSuffix}`;
+    let countHeadersQuery = `SELECT COUNT(*) AS c FROM COMP${tableSuffix}`;
+    let itemsQuery = `SELECT * FROM COM0Y${companyId}`;
+    let countItemsQuery = `SELECT COUNT(*) AS c FROM COM0Y${companyId}`;
+
+    if (yearToFilter !== null) {
+      headersQuery += ` WHERE YEAR(FECHA_DOC) = ${yearToFilter}`;
+      countHeadersQuery += ` WHERE YEAR(FECHA_DOC) = ${yearToFilter}`;
+      itemsQuery = `SELECT d.* FROM COM0Y${companyId} d INNER JOIN COMP${tableSuffix} h ON d.CVE_DOC = h.CVE_DOC WHERE YEAR(h.FECHA_DOC) = ${yearToFilter}`;
+      countItemsQuery = `SELECT COUNT(*) AS c FROM COM0Y${companyId} d INNER JOIN COMP${tableSuffix} h ON d.CVE_DOC = h.CVE_DOC WHERE YEAR(h.FECHA_DOC) = ${yearToFilter}`;
+    }
+
     try {
-      const resC = await pool.request().query(`SELECT COUNT(*) AS c FROM COMP${yearFilter}`);
+      const resC = await pool.request().query(countHeadersQuery);
       totalComp = resC.recordset[0].c;
       // Many SAE 4.x/5.x versions use COM0Y + [CompanyNum without leading zero]
-      const resP = await pool.request().query(`SELECT COUNT(*) AS c FROM COM0Y${companyId}`);
+      const resP = await pool.request().query(countItemsQuery);
       totalPty = resP.recordset[0].c;
     } catch (e) { console.error('Error pre-flight count purchases:', e.message); }
     const overallTotal = totalComp + totalPty;
@@ -493,7 +513,7 @@ const importPurchases = async (onProgress, year = '01') => {
       let activePromises = [];
       const request = new sql.Request(pool);
       request.stream = true;
-      request.query(`SELECT * FROM COMP${yearFilter}`);
+      request.query(headersQuery);
 
       request.on('row', (row) => {
         const suppKey = row.CVE_CLPV ? String(row.CVE_CLPV).trim() : null;
@@ -532,7 +552,7 @@ const importPurchases = async (onProgress, year = '01') => {
           const p = prisma.purchaseOrder.createMany({ data: batch, skipDuplicates: true })
             .then(async () => {
               count += batch.length;
-              if (onProgress) onProgress(count, overallTotal || 1, `Migrando COMP${yearFilter} (Ordenes)...`);
+              if (onProgress) onProgress(count, overallTotal || 1, `Migrando COMP${tableSuffix} (Ordenes)...`);
               const recs = batch.filter(o => o.status === 'Recepcionado').map(o => ({
                 purchase_order_id: o.id,
                 received_by: userId,
@@ -577,9 +597,8 @@ const importPurchases = async (onProgress, year = '01') => {
       let activePromises = [];
       const request = new sql.Request(pool);
       request.stream = true;
-      const companyId2 = parseInt(yearFilter);
-      console.log(`Iniciando extracción de partidas desde COM0Y${companyId2}... Suffix: ${yearFilter}`);
-      request.query(`SELECT * FROM COM0Y${companyId2}`);
+      console.log(`Iniciando extracción de partidas desde COM0Y${companyId}... Suffix: ${tableSuffix}`);
+      request.query(itemsQuery);
 
       let matchedItems = 0;
       let totalRows = 0;
@@ -619,7 +638,7 @@ const importPurchases = async (onProgress, year = '01') => {
           const p = prisma.purchaseOrderItem.createMany({ data: batch, skipDuplicates: true })
             .then(() => {
               count += batch.length;
-              if (onProgress) onProgress(count, overallTotal || 1, `Migrando COM0Y1 (Partidas)...`);
+              if (onProgress) onProgress(count, overallTotal || 1, `Migrando COM0Y${companyId} (Partidas)...`);
             })
             .catch(reject)
             .finally(() => { isPaused = false; request.resume(); });
@@ -652,14 +671,34 @@ const importPurchases = async (onProgress, year = '01') => {
 const importSales = async (onProgress, year = '01') => {
   try {
     let count = 0;
-    const yearFilter = (year === '00' || year === 'Todos' || !year) ? '01' : year;
+    let tableSuffix = '01';
+    let yearToFilter = null;
+
+    if (year && String(year).match(/^\d{4}$/)) {
+      yearToFilter = parseInt(year);
+    } else if (year && year !== 'Todos' && year !== '00') {
+      tableSuffix = String(year).padStart(2, '0');
+    }
+
+    const companyId = parseInt(tableSuffix);
+    let totalFact = 0, totalPty = 0;
     
-    const companyId = parseInt(yearFilter);
+    let headersQuery = `SELECT * FROM FACT${tableSuffix}`;
+    let countHeadersQuery = `SELECT COUNT(*) AS c FROM FACT${tableSuffix}`;
+    let itemsQuery = `SELECT * FROM FA0TY${companyId}`;
+    let countItemsQuery = `SELECT COUNT(*) AS c FROM FA0TY${companyId}`;
+
+    if (yearToFilter !== null) {
+      headersQuery += ` WHERE YEAR(FECHA_DOC) = ${yearToFilter}`;
+      countHeadersQuery += ` WHERE YEAR(FECHA_DOC) = ${yearToFilter}`;
+      itemsQuery = `SELECT d.* FROM FA0TY${companyId} d INNER JOIN FACT${tableSuffix} h ON d.CVE_DOC = h.CVE_DOC WHERE YEAR(h.FECHA_DOC) = ${yearToFilter}`;
+      countItemsQuery = `SELECT COUNT(*) AS c FROM FA0TY${companyId} d INNER JOIN FACT${tableSuffix} h ON d.CVE_DOC = h.CVE_DOC WHERE YEAR(h.FECHA_DOC) = ${yearToFilter}`;
+    }
+
     try {
-      const resC = await pool.request().query(`SELECT COUNT(*) AS c FROM FACT${yearFilter}`);
+      const resC = await pool.request().query(countHeadersQuery);
       totalFact = resC.recordset[0].c;
-      // Label in UI says FA0TY1
-      const resP = await pool.request().query(`SELECT COUNT(*) AS c FROM FA0TY${companyId}`);
+      const resP = await pool.request().query(countItemsQuery);
       totalPty = resP.recordset[0].c;
     } catch (e) { console.error('Error pre-flight count sales:', e.message); }
     const overallTotal = totalFact + totalPty;
@@ -687,7 +726,7 @@ const importSales = async (onProgress, year = '01') => {
       let activePromises = [];
       const request = new sql.Request(pool);
       request.stream = true;
-      request.query(`SELECT * FROM FACT${yearFilter}`);
+      request.query(headersQuery);
 
       request.on('row', (row) => {
         const cliKey = row.CVE_CLPV ? String(row.CVE_CLPV).trim() : null;
@@ -721,7 +760,7 @@ const importSales = async (onProgress, year = '01') => {
           const p = prisma.sale.createMany({ data: batch, skipDuplicates: true })
             .then(() => {
               count += batch.length;
-              if (onProgress) onProgress(count, overallTotal || 1, `Migrando FACT01 (Ventas)...`);
+              if (onProgress) onProgress(count, overallTotal || 1, `Migrando FACT${tableSuffix} (Ventas)...`);
             })
             .finally(() => { isPaused = false; request.resume(); });
           activePromises.push(p);
@@ -750,7 +789,7 @@ const importSales = async (onProgress, year = '01') => {
       let activePromises = [];
       const request = new sql.Request(pool);
       request.stream = true;
-      request.query(`SELECT * FROM FA0TY${parseInt(yearFilter)}`);
+      request.query(itemsQuery);
 
       request.on('row', (row) => {
         const saleFolio = row.CVE_DOC ? String(row.CVE_DOC).trim() : null;
@@ -781,7 +820,7 @@ const importSales = async (onProgress, year = '01') => {
           const p = prisma.saleItem.createMany({ data: batch, skipDuplicates: true })
             .then(() => {
               count += batch.length;
-              if (onProgress) onProgress(count, overallTotal || 1, `Migrando PAR_FACT01 (Partidas)...`);
+              if (onProgress) onProgress(count, overallTotal || 1, `Migrando FA0TY${companyId} (Partidas)...`);
             })
             .finally(() => { isPaused = false; request.resume(); });
           activePromises.push(p);
@@ -809,7 +848,15 @@ const importSales = async (onProgress, year = '01') => {
 const importKardex = async (onProgress, year = '01') => {
   try {
     let count = 0;
-    const yearFilter = (year === '00' || year === 'Todos' || !year) ? '01' : year;
+    let tableSuffix = '01';
+    let yearToFilter = null;
+
+    if (year && String(year).match(/^\d{4}$/)) {
+      yearToFilter = parseInt(year);
+    } else if (year && year !== 'Todos' && year !== '00') {
+      tableSuffix = String(year).padStart(2, '0');
+    }
+
     const defaultUser = await prisma.user.findFirst();
     const userId = defaultUser ? defaultUser.id : 'migrated-user';
 
@@ -828,8 +875,16 @@ const importKardex = async (onProgress, year = '01') => {
     } catch(e) {}
 
     let totalMinv = 0;
+    let queryMinv = `SELECT * FROM MINV${tableSuffix}`;
+    let countMinv = `SELECT COUNT(*) AS c FROM MINV${tableSuffix}`;
+
+    if (yearToFilter !== null) {
+      queryMinv += ` WHERE YEAR(FECHA_DOCU) = ${yearToFilter}`;
+      countMinv += ` WHERE YEAR(FECHA_DOCU) = ${yearToFilter}`;
+    }
+
     try {
-      const resM = await pool.request().query(`SELECT COUNT(*) AS c FROM MINV${yearFilter}`);
+      const resM = await pool.request().query(countMinv);
       totalMinv = resM.recordset[0].c;
     } catch(e) {}
 
@@ -839,7 +894,7 @@ const importKardex = async (onProgress, year = '01') => {
       let activePromises = [];
       const request = new sql.Request(pool);
       request.stream = true;
-      request.query(`SELECT * FROM MINV${yearFilter}`);
+      request.query(queryMinv);
 
       request.on('row', (row) => {
         const artKey = row.CLV_ART ? String(row.CLV_ART).trim() : null;
@@ -897,3 +952,4 @@ const importKardex = async (onProgress, year = '01') => {
 }
 
 module.exports = { connectToAspel, importClients, importTaxSchemes, importProductLines, importProducts, importPurchases, importSales, importKardex }
+
