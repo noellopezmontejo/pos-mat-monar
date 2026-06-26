@@ -54,6 +54,11 @@ const Purchases = () => {
   const [orderWarehouseId, setOrderWarehouseId] = useState('');
   const [orderObservations, setOrderObservations] = useState('');
 
+  const [selectedReception, setSelectedReception] = useState(null);
+  const [supplierDocType, setSupplierDocType] = useState('Remisión');
+  const [supplierDocNumber, setSupplierDocNumber] = useState('');
+  const [supplierDocDate, setSupplierDocDate] = useState('');
+
 
   const getHeaders = () => {
     const token = localStorage.getItem('token');
@@ -214,7 +219,12 @@ const Purchases = () => {
       setSelectedOrder(null);
     }
     if (type === 'supplier') setSupplierForm({ name: '', rfc: '', phone: '', email: '', address: '', legacy_code: '' });
-    if (type === 'receive') setSelectedOrderForReception(null);
+    if (type === 'receive') {
+      setSelectedOrderForReception(null);
+      setSupplierDocType('Remisión');
+      setSupplierDocNumber('');
+      setSupplierDocDate('');
+    }
   }
 
   const handleCreateSupplier = async (e) => {
@@ -244,7 +254,10 @@ const Purchases = () => {
         observations: receptionObservations,
         items: itemsToSubmit,
         warehouse_id: receptionWarehouseId,
-        received_by: receptionReceivedBy
+        received_by: receptionReceivedBy,
+        supplier_doc_type: supplierDocType,
+        supplier_doc_number: supplierDocNumber,
+        supplier_doc_date: supplierDocDate || null
       }, getHeaders());
       
       setIsModalOpen(false);
@@ -252,6 +265,9 @@ const Purchases = () => {
       setReceptionObservations('');
       setReceptionWarehouseId('');
       setReceptionReceivedBy('');
+      setSupplierDocType('Remisión');
+      setSupplierDocNumber('');
+      setSupplierDocDate('');
       setSelectedOrderForReception(null);
       fetchReceptions();
       fetchOrders();
@@ -281,6 +297,21 @@ const Purchases = () => {
       fetchOrders()
     } catch (e) {
       alert(e.response?.data?.error || 'Error al cancelar recepción')
+    }
+  }
+
+  const handleViewReception = async (rec) => {
+    setSelectedOrder(rec.purchase_order);
+    setSelectedReception(rec);
+    setModalType('view_reception');
+    setIsModalOpen(true);
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await axios.get(`${apiUrl}/api/purchases/receptions/${rec.id}`, getHeaders());
+      setSelectedReception(res.data);
+    } catch (err) {
+      console.error("Error al obtener detalle de recepción:", err);
     }
   }
 
@@ -469,7 +500,7 @@ const Purchases = () => {
                   </td>
                   <td className="px-8 py-5 text-right">
                      <div className="flex items-center justify-end space-x-2">
-                        <button onClick={() => { setSelectedOrder(rec.purchase_order); setModalType('view_reception'); setIsModalOpen(true); }} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-gray-200 transition-colors">Ver</button>
+                        <button onClick={() => handleViewReception(rec)} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-gray-200 transition-colors">Ver</button>
                         {rec.status !== 'Cancelada' && (
                           <button onClick={() => handleCancelReception(rec.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
                              <Trash2 size={16} />
@@ -789,6 +820,41 @@ const Purchases = () => {
                         </div>
                      </div>
 
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-5 bg-green-50/35 rounded-2xl border border-green-100/50">
+                        <div>
+                           <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Tipo de Doc. Proveedor</label>
+                           <select 
+                             className="w-full p-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-green-500 font-bold text-gray-700 shadow-sm"
+                             value={supplierDocType}
+                             onChange={(e) => setSupplierDocType(e.target.value)}
+                           >
+                             <option value="Remisión">Remisión</option>
+                             <option value="Factura">Factura</option>
+                             <option value="Nota de Entrega">Nota de Entrega</option>
+                             <option value="Otro">Otro</option>
+                           </select>
+                        </div>
+                        <div>
+                           <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Folio/Número Documento</label>
+                           <input 
+                             type="text" 
+                             placeholder="Ej: F-98342" 
+                             className="w-full p-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-green-500 font-bold text-gray-700 shadow-sm"
+                             value={supplierDocNumber}
+                             onChange={(e) => setSupplierDocNumber(e.target.value)}
+                           />
+                        </div>
+                        <div>
+                           <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Fecha del Documento</label>
+                           <input 
+                             type="date" 
+                             className="w-full p-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-green-500 font-bold text-gray-700 shadow-sm"
+                             value={supplierDocDate}
+                             onChange={(e) => setSupplierDocDate(e.target.value)}
+                           />
+                        </div>
+                     </div>
+
                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Cantidades a Recibir Hoy</p>
                      <div className="rounded-2xl border border-gray-100 overflow-hidden mb-6">
                         <table className="w-full text-left">
@@ -881,49 +947,106 @@ const Purchases = () => {
 
             {(modalType === 'view_order' || modalType === 'view_reception') && selectedOrder && (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                  <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Proveedor</p><h4 className="text-sm font-bold text-gray-900">{selectedOrder.supplier?.name}</h4></div>
-                  <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Almacén</p><h4 className="text-sm font-bold text-primary-700">{selectedOrder.warehouse?.name || 'Sucursal Principal'}</h4></div>
-                  <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Fecha</p><h4 className="text-sm font-bold text-gray-900">{new Date(selectedOrder.created_at).toLocaleString('es-MX')}</h4></div>
-                  <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Status</p><h4 className={`text-sm font-black uppercase ${selectedOrder.status === 'Recepcionado' ? 'text-green-600' : 'text-primary-600'}`}>{selectedOrder.status}</h4></div>
-                </div>
+                {modalType === 'view_reception' && selectedReception ? (
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-3xl border border-gray-100 text-sm">
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Proveedor</p>
+                      <h4 className="font-bold text-gray-900">{selectedOrder.supplier?.name}</h4>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Almacén de Entrada</p>
+                      <h4 className="font-bold text-primary-700">{selectedOrder.warehouse?.name || 'Sucursal Principal'}</h4>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Fecha de Recepción</p>
+                      <h4 className="font-bold text-gray-900">
+                        {new Date(selectedReception.created_at).toLocaleString('es-MX')}
+                      </h4>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Recibido por</p>
+                      <h4 className="font-bold text-gray-900">{selectedReception.received_by || 'SISTEMA'}</h4>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Documento del Proveedor</p>
+                      <h4 className="font-bold text-green-700">
+                        {selectedReception.supplier_doc_type || 'Remisión'} - {selectedReception.supplier_doc_number || 'S/N'}{' '}
+                        {selectedReception.supplier_doc_date && `(del ${new Date(selectedReception.supplier_doc_date).toLocaleDateString('es-MX')})`}
+                      </h4>
+                    </div>
+                    {selectedReception.observations && (
+                      <div className="col-span-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Observaciones de Recepción</p>
+                        <h4 className="font-bold text-gray-600 italic">"{selectedReception.observations}"</h4>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                    <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Proveedor</p><h4 className="text-sm font-bold text-gray-900">{selectedOrder.supplier?.name}</h4></div>
+                    <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Almacén</p><h4 className="text-sm font-bold text-primary-700">{selectedOrder.warehouse?.name || 'Sucursal Principal'}</h4></div>
+                    <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Fecha</p><h4 className="text-sm font-bold text-gray-900">{new Date(selectedOrder.created_at).toLocaleString('es-MX')}</h4></div>
+                    <div><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Status</p><h4 className={`text-sm font-black uppercase ${selectedOrder.status === 'Recepcionado' ? 'text-green-600' : 'text-primary-600'}`}>{selectedOrder.status}</h4></div>
+                  </div>
+                )}
 
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
                     <table className="w-full text-left">
                        <thead className="bg-gray-900">
                          <tr className="text-gray-400 text-[10px] font-black uppercase">
                             <th className="px-6 py-4">Producto</th>
-                            <th className="px-6 py-4 text-right">Cant. Sol.</th>
-                            <th className="px-6 py-4 text-right">Entregado</th>
+                            <th className="px-6 py-4 text-right">
+                              {modalType === 'view_reception' ? 'Cant. Recibida' : 'Cant. Sol.'}
+                            </th>
+                            {modalType === 'view_order' && <th className="px-6 py-4 text-right">Entregado</th>}
                             <th className="px-6 py-4 text-right">Costo U.</th>
                             <th className="px-6 py-4 text-right">Total</th>
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-gray-100">
-                         {selectedOrder.items?.map((item, idx) => (
-                           <tr key={idx} className="hover:bg-gray-50">
-                              <td className="px-6 py-4">
-                                 <p className="font-bold text-gray-900">{item.product?.name}</p>
-                                 <p className="text-[10px] text-gray-400">{item.product?.legacy_code}</p>
-                              </td>
-                              <td className="px-6 py-4 text-right font-black text-gray-400 italic">{item.quantity}</td>
-                              <td className="px-6 py-4 text-right">
-                                 <span className={`px-3 py-1 rounded-lg font-black text-sm ${item.quantity_received >= item.quantity ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
-                                    {item.quantity_received || 0}
-                                 </span>
-                              </td>
-                              <td className="px-6 py-4 text-right text-gray-500">${(item.cost || 0).toFixed(2)}</td>
-                              <td className="px-6 py-4 text-right font-black text-primary-600">${(item.quantity * (item.cost || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                           </tr>
-                         ))}
+                         {modalType === 'view_reception' ? (
+                           selectedReception?.items?.map((item, idx) => (
+                             <tr key={idx} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                   <p className="font-bold text-gray-900">{item.product?.name}</p>
+                                   <p className="text-[10px] text-gray-400">{item.product?.legacy_code}</p>
+                                </td>
+                                <td className="px-6 py-4 text-right font-black text-gray-900">{item.quantity}</td>
+                                <td className="px-6 py-4 text-right text-gray-500">${(item.cost || 0).toFixed(2)}</td>
+                                <td className="px-6 py-4 text-right font-black text-green-600">${(item.quantity * (item.cost || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                             </tr>
+                           ))
+                         ) : (
+                           selectedOrder.items?.map((item, idx) => (
+                             <tr key={idx} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                   <p className="font-bold text-gray-900">{item.product?.name}</p>
+                                   <p className="text-[10px] text-gray-400">{item.product?.legacy_code}</p>
+                                </td>
+                                <td className="px-6 py-4 text-right font-black text-gray-400 italic">{item.quantity}</td>
+                                <td className="px-6 py-4 text-right">
+                                   <span className={`px-3 py-1 rounded-lg font-black text-sm ${item.quantity_received >= item.quantity ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                      {item.quantity_received || 0}
+                                   </span>
+                                </td>
+                                <td className="px-6 py-4 text-right text-gray-500">${(item.cost || 0).toFixed(2)}</td>
+                                <td className="px-6 py-4 text-right font-black text-primary-600">${(item.quantity * (item.cost || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                             </tr>
+                           ))
+                         )}
                        </tbody>
                     </table>
                 </div>
                  <div className="flex flex-col md:flex-row items-center justify-between pt-6 border-t border-gray-100 gap-6">
                     <div className="flex flex-col items-center md:items-start p-6 bg-green-50 rounded-[2rem] border border-green-100 w-full md:w-auto">
-                       <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1 italic">Total Físico Entregado</p>
+                       <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1 italic">
+                         {modalType === 'view_reception' ? 'Total Recibido en esta Entrega' : 'Total Físico Entregado'}
+                       </p>
                        <h3 className="text-3xl font-black text-green-700 tracking-tighter">
-                          ${(selectedOrder.items?.reduce((acc, item) => acc + (item.quantity_received * (item.cost || 0)), 0) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${(modalType === 'view_reception' 
+                            ? selectedReception?.total_amount || 0 
+                            : selectedOrder.items?.reduce((acc, item) => acc + (item.quantity_received * (item.cost || 0)), 0) || 0
+                          ).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                        </h3>
                     </div>
                     

@@ -65,7 +65,17 @@ const getReceptionDetail = async (req, res) => {
 
 const createReception = async (req, res) => {
   try {
-    const { purchase_order_id, observations, items, warehouse_id, received_by, billed_amount } = req.body
+    const { 
+      purchase_order_id, 
+      observations, 
+      items, 
+      warehouse_id, 
+      received_by, 
+      billed_amount,
+      supplier_doc_type,
+      supplier_doc_number,
+      supplier_doc_date
+    } = req.body
     const systemUserId = req.user?.id || 'SISTEMA'
     
     if (!warehouse_id) {
@@ -87,7 +97,10 @@ const createReception = async (req, res) => {
           purchase_order_id, 
           received_by: received_by || systemUserId,
           observations,
-          billed_amount: parseFloat(billed_amount || 0)
+          billed_amount: parseFloat(billed_amount || 0),
+          supplier_doc_type: supplier_doc_type || null,
+          supplier_doc_number: supplier_doc_number || null,
+          supplier_doc_date: supplier_doc_date ? new Date(supplier_doc_date) : null
         }
       })
 

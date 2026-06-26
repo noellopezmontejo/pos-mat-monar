@@ -338,19 +338,22 @@ model PurchaseOrderItem {
 }
 
 model Reception {
-  id                String            @id @default(uuid())
-  purchase_order_id String
-  received_by       String
-  observations      String?
-  total_amount      Float?
-  billed_amount     Float?
-  created_at        DateTime          @default(now())
-  status            String            @default("Activa")
-  canceled_at       DateTime?
-  canceled_by       String?
-  purchase_order    PurchaseOrder     @relation(fields: [purchase_order_id], references: [id])
-  items             ReceptionItem[]
-  payments          SupplierPayment[]
+  id                  String            @id @default(uuid())
+  purchase_order_id   String
+  received_by         String
+  observations        String?
+  total_amount        Float?
+  billed_amount       Float?
+  supplier_doc_type   String?
+  supplier_doc_number String?
+  supplier_doc_date   DateTime?
+  created_at          DateTime          @default(now())
+  status              String            @default("Activa")
+  canceled_at         DateTime?
+  canceled_by         String?
+  purchase_order      PurchaseOrder     @relation(fields: [purchase_order_id], references: [id])
+  items               ReceptionItem[]
+  payments            SupplierPayment[]
 }
 
 model ReceptionItem {

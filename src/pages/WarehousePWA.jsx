@@ -28,6 +28,9 @@ export default function WarehousePWA() {
   const [receptionItems, setReceptionItems] = useState([]);
   const [receptionObservations, setReceptionObservations] = useState('');
   const [targetWarehouseId, setTargetWarehouseId] = useState('');
+  const [supplierDocType, setSupplierDocType] = useState('Remisión');
+  const [supplierDocNumber, setSupplierDocNumber] = useState('');
+  const [supplierDocDate, setSupplierDocDate] = useState('');
 
   const getHeaders = () => {
     const token = localStorage.getItem('token');
@@ -172,7 +175,10 @@ export default function WarehousePWA() {
       })),
       observations: receptionObservations,
       warehouse_id: targetWarehouseId,
-      received_by
+      received_by,
+      supplier_doc_type: supplierDocType,
+      supplier_doc_number: supplierDocNumber,
+      supplier_doc_date: supplierDocDate || null
     };
 
     if (payload.items.length === 0) {
@@ -184,6 +190,10 @@ export default function WarehousePWA() {
       try {
         await apiClient.post('/api/purchases/receptions', payload);
         alert("Recepción confirmada con éxito.");
+        setReceptionObservations('');
+        setSupplierDocType('Remisión');
+        setSupplierDocNumber('');
+        setSupplierDocDate('');
         fetchOrders();
         setView('menu');
       } catch (e) { 
@@ -193,6 +203,10 @@ export default function WarehousePWA() {
     } else {
       await addSyncOperation('INSERT', 'receptions', payload);
       alert("Recepción registrada offline. Se sincronizará al recuperar conexión.");
+      setReceptionObservations('');
+      setSupplierDocType('Remisión');
+      setSupplierDocNumber('');
+      setSupplierDocDate('');
       setView('menu');
     }
   };
@@ -343,7 +357,46 @@ export default function WarehousePWA() {
               </select>
             </div>
 
-            <div>
+            <div className="border-t border-slate-100 pt-4 space-y-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Documento del Proveedor</span>
+              
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block">Tipo de Documento</label>
+                <select 
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-slate-700 outline-none"
+                  value={supplierDocType}
+                  onChange={e => setSupplierDocType(e.target.value)}
+                >
+                  <option value="Remisión">Remisión</option>
+                  <option value="Factura">Factura</option>
+                  <option value="Nota de Entrega">Nota de Entrega</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block">Folio / Número</label>
+                <input 
+                  type="text"
+                  placeholder="Ej: F-98342"
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-slate-700 outline-none text-sm"
+                  value={supplierDocNumber}
+                  onChange={e => setSupplierDocNumber(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block">Fecha del Documento</label>
+                <input 
+                  type="date"
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-slate-700 outline-none text-sm"
+                  value={supplierDocDate}
+                  onChange={e => setSupplierDocDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
               <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Observaciones / Notas</label>
               <textarea 
                 className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-slate-700 outline-none text-sm min-h-[80px] resize-none"
