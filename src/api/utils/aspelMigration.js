@@ -249,6 +249,166 @@ async function importProductLines(onProgress) {
   }
 }
 
+const resolveWarehouseTable = async (suffix = '01') => {
+  const request = new sql.Request(pool);
+  try {
+    const result = await request.query(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE LOWER(TABLE_NAME) IN ('catalmacen', 'almacenes${suffix}', 'alm${suffix}')
+    `);
+    
+    const tables = result.recordset.map(r => String(r.TABLE_NAME).toLowerCase());
+    if (tables.includes('catalmacen')) return 'CatAlmacen';
+    if (tables.includes(`almacenes${suffix}`)) return `ALMACENES${suffix}`;
+    if (tables.includes(`alm${suffix}`)) return `ALM${suffix}`;
+    
+    // Wildcard search fallback
+    const wildcardResult = await request.query(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE LOWER(TABLE_NAME) LIKE 'almacenes%' OR LOWER(TABLE_NAME) LIKE 'alm%'
+    `);
+    const wildcardTables = wildcardResult.recordset.map(r => String(r.TABLE_NAME).toLowerCase());
+    
+    const foundAlmacenes = wildcardTables.find(t => t.startsWith('almacenes'));
+    if (foundAlmacenes) {
+      const exactName = wildcardResult.recordset.find(r => r.TABLE_NAME.toLowerCase() === foundAlmacenes).TABLE_NAME;
+      return exactName;
+    }
+    
+    const foundAlm = wildcardTables.find(t => t.startsWith('alm'));
+    if (foundAlm) {
+      const exactName = wildcardResult.recordset.find(r => r.TABLE_NAME.toLowerCase() === foundAlm).TABLE_NAME;
+      return exactName;
+    }
+  } catch (e) {
+    console.error('[Migration] Error al resolver tabla de almacenes:', e.message);
+  }
+  
+  return null;
+}
+
+const importBranches = async (onProgress, year = '01') => {
+  try {
+    let suffix = '01';
+    if (year && String(year).match(/^\d{4}$/)) {
+      // Year was passed, use default company suffix '01'
+    } else if (year && year !== 'Todos' && year !== '00') {
+      suffix = String(year).padStart(2, '0');
+    }
+
+    const tableName = await resolveWarehouseTable(suffix);
+    
+    if (!tableName) {
+      console.log('[Migration] No se detectó ninguna tabla de almacenes en SQL Server. Se creará almacén por defecto (Almacén 1).');
+      
+      const existingBranches = await prisma.branch.findMany();
+      const defaultBranchName = 'Almacén 1 - MATRIZ';
+      
+      const matchedBranch = existingBranches.find(b => {
+        const key = b.name.replace('Almacén ', '').split(' ')[0].trim();
+        return key === '1';
+      });
+
+      if (!matchedBranch) {
+        await prisma.branch.create({
+          data: {
+            name: defaultBranchName,
+            address: 'Principal'
+          }
+        });
+      } else {
+        await prisma.branch.update({
+          where: { id: matchedBranch.id },
+          data: {
+            name: defaultBranchName
+          }
+        });
+      }
+      
+      if (onProgress) {
+        onProgress(1, 1, 'Creando Almacén 1 (Por Defecto)...');
+      }
+      
+      return { count: 1, message: 'No se encontraron tablas de almacenes. Se creó/actualizó el Almacén 1 por defecto.' };
+    }
+
+    console.log(`[Migration] Resolviendo tabla de almacenes a: ${tableName}`);
+
+    const request = new sql.Request(pool);
+    const result = await request.query(`SELECT * FROM ${tableName}`);
+    const rows = result.recordset;
+
+    let count = 0;
+    const total = rows.length;
+
+    const existingBranches = await prisma.branch.findMany();
+    const tLower = tableName.toLowerCase();
+
+    for (const row of rows) {
+      let clave = '';
+      let nameText = '';
+      let addressText = null;
+
+      if (tLower === 'catalmacen') {
+        clave = row.CveAlmacen !== undefined && row.CveAlmacen !== null ? String(row.CveAlmacen).trim() : '';
+        nameText = row.Descripcion !== undefined && row.Descripcion !== null ? String(row.Descripcion).trim() : '';
+        addressText = row.Ubicacion !== undefined && row.Ubicacion !== null ? String(row.Ubicacion).trim() : null;
+      } else if (tLower.startsWith('almacenes')) {
+        const rawClave = row.CVE_ALM !== undefined ? row.CVE_ALM : (row.NUM_ALM !== undefined ? row.NUM_ALM : (row.CLAVE !== undefined ? row.CLAVE : ''));
+        clave = rawClave !== null ? String(rawClave).trim() : '';
+        nameText = row.DESCRIP !== undefined && row.DESCRIP !== null ? String(row.DESCRIP).trim() : 
+                   (row.DESCR !== undefined && row.DESCR !== null ? String(row.DESCR).trim() : 
+                   (row.NOMBRE !== undefined && row.NOMBRE !== null ? String(row.NOMBRE).trim() : ''));
+        addressText = row.DIRECCION !== undefined && row.DIRECCION !== null ? String(row.DIRECCION).trim() : null;
+      } else {
+        const rawClave = row.CVE_ALM !== undefined ? row.CVE_ALM : (row.NUM_ALM !== undefined ? row.NUM_ALM : (row.NUM_ALMA !== undefined ? row.NUM_ALMA : ''));
+        clave = rawClave !== null ? String(rawClave).trim() : '';
+        nameText = row.DESCR !== undefined && row.DESCR !== null ? String(row.DESCR).trim() : 
+                   (row.DESCRIP !== undefined && row.DESCRIP !== null ? String(row.DESCRIP).trim() : '');
+        addressText = row.DIRECCION !== undefined && row.DIRECCION !== null ? String(row.DIRECCION).trim() : null;
+      }
+
+      if (!clave) continue;
+
+      const formattedName = nameText ? `Almacén ${clave} - ${nameText}` : `Almacén ${clave}`;
+
+      const matchedBranch = existingBranches.find(b => {
+        const key = b.name.replace('Almacén ', '').split(' ')[0].trim();
+        return key === clave;
+      });
+
+      if (matchedBranch) {
+        await prisma.branch.update({
+          where: { id: matchedBranch.id },
+          data: {
+            name: formattedName,
+            address: addressText
+          }
+        });
+      } else {
+        await prisma.branch.create({
+          data: {
+            name: formattedName,
+            address: addressText
+          }
+        });
+      }
+
+      count++;
+      if (onProgress) {
+        onProgress(count, total, `Migrando Almacén ${clave}: ${nameText || ''}`);
+      }
+    }
+
+    return { count, message: `Migración de Almacenes completa (${count} registros de ${tableName}).` };
+  } catch (err) {
+    console.error('importBranches failed:', err);
+    throw new Error('Fallo la importación de Almacenes: ' + err.message);
+  }
+}
+
 const importProducts = async (onProgress) => {
   try {
     let count = 0;
@@ -380,7 +540,8 @@ const importProducts = async (onProgress) => {
       const branchMap = new Map();
       const allBranches = await prisma.branch.findMany();
       for (const b of allBranches) {
-        branchMap.set(b.name.replace('Almacén ', '').trim(), b.id);
+        const key = b.name.replace('Almacén ', '').split(' ')[0].trim();
+        branchMap.set(key, b.id);
       }
       if (!branchMap.has('1')) branchMap.set('1', branch.id);
 
@@ -497,7 +658,10 @@ const importPurchases = async (onProgress, year = '01') => {
 
     const branchMap = new Map();
     const allBranches = await prisma.branch.findMany();
-    allBranches.forEach(b => branchMap.set(b.name.replace('Almacén ', '').trim(), b.id));
+    allBranches.forEach(b => {
+      const key = b.name.replace('Almacén ', '').split(' ')[0].trim();
+      branchMap.set(key, b.id);
+    });
 
     const defaultSup = await prisma.supplier.findFirst({ where: { name: 'PROVEEDOR MIGRADO SAE' }});
     const defaultSupId = defaultSup ? defaultSup.id : (await prisma.supplier.create({ data: { name: 'PROVEEDOR MIGRADO SAE', legacy_code: '0' } })).id;
@@ -714,7 +878,10 @@ const importSales = async (onProgress, year = '01') => {
 
     const branchMap = new Map();
     const allBranches = await prisma.branch.findMany();
-    allBranches.forEach(b => branchMap.set(b.name.replace('Almacén ', '').trim(), b.id));
+    allBranches.forEach(b => {
+      const key = b.name.replace('Almacén ', '').split(' ')[0].trim();
+      branchMap.set(key, b.id);
+    });
 
     const defaultUser = await prisma.user.findFirst();
     const userId = defaultUser ? defaultUser.id : 'migrated-user';
@@ -866,7 +1033,10 @@ const importKardex = async (onProgress, year = '01') => {
 
     const branchMap = new Map();
     const allBranches = await prisma.branch.findMany();
-    allBranches.forEach(b => branchMap.set(b.name.replace('Almacén ', '').trim(), b.id));
+    allBranches.forEach(b => {
+      const key = b.name.replace('Almacén ', '').split(' ')[0].trim();
+      branchMap.set(key, b.id);
+    });
 
     let concepts = new Map();
     try {
@@ -951,5 +1121,5 @@ const importKardex = async (onProgress, year = '01') => {
   }
 }
 
-module.exports = { connectToAspel, importClients, importTaxSchemes, importProductLines, importProducts, importPurchases, importSales, importKardex }
+module.exports = { connectToAspel, importClients, importTaxSchemes, importProductLines, importBranches, importProducts, importPurchases, importSales, importKardex }
 

@@ -43,8 +43,9 @@ scratch/
 .idea/
 .DS_Store
 Thumbs.db
-*.suo
-*.ntvsca
-*.njsproj
-*.sln
-*.sw?
+# Carpetas de compilación C# / .NET
+PosVentasEspeciales/bin/
+PosVentasEspeciales/obj/
+PosVentasEspeciales/*.exe
+*.pdb
+*.user

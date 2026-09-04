@@ -1,4 +1,4 @@
-const { connectToAspel, importClients, importTaxSchemes, importProductLines, importProducts, importPurchases, importSales, importKardex } = require('../utils/aspelMigration')
+const { connectToAspel, importClients, importTaxSchemes, importProductLines, importBranches, importProducts, importPurchases, importSales, importKardex } = require('../utils/aspelMigration')
 const { prisma } = require('../db')
 const EventEmitter = require('events')
 const migrationEvents = new EventEmitter()
@@ -41,6 +41,8 @@ const startMigration = async (req, res) => {
       report = await importTaxSchemes(onProgress)
     } else if (ent === 'productlines' || ent === 'lines' || ent === 'brands') {
       report = await importProductLines(onProgress)
+    } else if (ent === 'warehouses' || ent === 'almacenes') {
+      report = await importBranches(onProgress, year)
     } else if (ent === 'inventory' || ent === 'products') {
       report = await importProducts(onProgress)
     } else if (ent === 'purchases') {

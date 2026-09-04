@@ -207,6 +207,18 @@ const Migration = () => {
 
             <button
               disabled={loadingEntity !== null}
+              onClick={() => runMigration('warehouses', 'Catálogo de Almacenes')}
+              className="flex flex-col items-start p-5 bg-blue-50 border border-blue-200 rounded-2xl hover:bg-blue-100 transition-all disabled:opacity-50 group"
+            >
+              <div className="flex justify-between w-full mb-2">
+                <span className="font-black text-blue-900">1.2. Almacenes</span>
+                {loadingEntity === 'warehouses' ? <RefreshCw className="animate-spin text-blue-600" size={20} /> : <ArrowRight className="text-blue-400 group-hover:translate-x-1 transition-transform" size={20} />}
+              </div>
+              <p className="text-xs text-blue-700 text-left">Importa el catálogo de almacenes o sucursales (CatAlmacen / ALM01).</p>
+            </button>
+
+            <button
+              disabled={loadingEntity !== null}
               onClick={() => runMigration('taxschemes', 'Esquemas de Impuestos (IMPU01)')}
               className="flex flex-col items-start p-5 bg-orange-50 border border-orange-200 rounded-2xl hover:bg-orange-100 transition-all disabled:opacity-50 group"
             >

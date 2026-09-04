@@ -20,6 +20,15 @@ export default {
           900: '#0c4a6e',
         },
       },
+      animation: {
+        'bounce-short': 'bounce-short 0.5s ease-out 2',
+      },
+      keyframes: {
+        'bounce-short': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        }
+      }
     },
   },
   plugins: [],

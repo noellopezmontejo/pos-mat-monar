@@ -24,10 +24,13 @@ class CFDIService {
 
     salesArray.forEach(sale => {
       sale.items.forEach(item => {
-        const valorUnitario = item.price / 100; 
+        const precioConIva = item.price / 100;
+        const valorUnitario = precioConIva / 1.16;
         const importe = round2(valorUnitario * item.quantity);
         subtotal += importe;
-        const importeIva = round2(importe * 0.16);
+        
+        const baseIva = importe;
+        const importeIva = round2(baseIva * 0.16);
         totalTraslados += importeIva;
         
         conceptos.push({
@@ -37,7 +40,7 @@ class CFDIService {
           ClaveUnidad: 'H87',
           Unidad: item.unit || 'Pieza',
           Descripcion: `[Ref: ${sale.folio}] ${item.product.name}`,
-          ValorUnitario: valorUnitario.toFixed(2),
+          ValorUnitario: valorUnitario.toFixed(6),
           Importe: importe.toFixed(2),
           ObjetoImp: '02',
           Impuestos: {

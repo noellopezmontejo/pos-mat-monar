@@ -4,10 +4,9 @@ const getCustomers = async (req, res) => {
   try {
     const customers = await prisma.customer.findMany({
       include: { fiscal_client: true },
-      orderBy: { created_at: 'desc' },
-      take: 10
+      orderBy: { name: 'asc' },
+      take: 50
     })
-    console.log(`[API] getCustomers found: ${customers.length}`)
     res.json(customers)
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener clientes' })
@@ -16,24 +15,37 @@ const getCustomers = async (req, res) => {
 
 const searchCustomers = async (req, res) => {
   const { query } = req.query
-  if (!query) return res.json([])
-
   try {
+    if (!query || !query.trim()) {
+      const customers = await prisma.customer.findMany({
+        include: { fiscal_client: true },
+        orderBy: { name: 'asc' },
+        take: 50
+      })
+      return res.json(customers)
+    }
+
+    const terms = query.trim().split(/\s+/)
+    const andConditions = terms.map(term => ({
+      OR: [
+        { name: { contains: term, mode: 'insensitive' } },
+        { phone: { contains: term, mode: 'insensitive' } },
+        { legacy_code: { contains: term, mode: 'insensitive' } },
+        { address: { contains: term, mode: 'insensitive' } },
+        { fiscal_client: { is: { rfc: { contains: term, mode: 'insensitive' } } } },
+        { fiscal_client: { is: { business_name: { contains: term, mode: 'insensitive' } } } }
+      ]
+    }))
+
     const customers = await prisma.customer.findMany({
-      where: {
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { phone: { contains: query, mode: 'insensitive' } },
-          { legacy_code: { contains: query, mode: 'insensitive' } },
-          { address: { contains: query, mode: 'insensitive' } }
-        ]
-      },
+      where: { AND: andConditions },
       include: { fiscal_client: true },
-      take: 20
+      take: 50,
+      orderBy: { name: 'asc' }
     })
-    console.log(`[API] searchCustomers find: ${customers.length} for query: ${query}`)
     res.json(customers)
   } catch (error) {
+    console.error('Error searchCustomers:', error)
     res.status(500).json({ error: 'Error en la búsqueda de clientes' })
   }
 }

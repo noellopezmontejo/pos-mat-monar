@@ -4,20 +4,22 @@ const {
   generateInvoice, 
   getInvoices, 
   cancelInvoice, 
-  generateCreditNote 
+  generateCreditNote,
+  downloadXML,
+  downloadPDF
 } = require('../controllers/billingController');
 const { authenticateToken } = require('../middleware/auth');
 
-// Todos los endpoints de facturación deben estar protegidos
+// Endpoints de descarga pública (no requieren cabecera Bearer)
+router.get('/download/:uuid/xml', downloadXML);
+router.get('/download/:uuid/pdf', downloadPDF);
+
+// Todos los demás endpoints de facturación deben estar protegidos
 router.use(authenticateToken);
 
 router.post('/invoice', generateInvoice);
 router.get('/', getInvoices);
 router.post('/cancel', cancelInvoice);
 router.post('/credit-note', generateCreditNote);
-
-// Download placeholders
-router.get('/download/:uuid/xml', (req, res) => res.send('XML File Content Mock'));
-router.get('/download/:uuid/pdf', (req, res) => res.send('PDF File Content Mock'));
 
 module.exports = router;

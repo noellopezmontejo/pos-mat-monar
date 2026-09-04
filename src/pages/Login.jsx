@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Lock, User, Key, ArrowRight, ShieldCheck, AlertCircle, Monitor, Settings, Download } from 'lucide-react'
 import apiClient from '../utils/apiClient'
 import { useCompany } from '../contexts/CompanyContext'
@@ -9,6 +9,14 @@ const Login = ({ onLogin }) => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  const usernameInputRef = useRef(null)
+  const passwordInputRef = useRef(null)
+  
+  // Autofocus username input on load
+  useEffect(() => {
+    usernameInputRef.current?.focus()
+  }, [])
   
   // Configuración de IP dinámica
   const [showIpConfig, setShowIpConfig] = useState(false)
@@ -156,12 +164,20 @@ const Login = ({ onLogin }) => {
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary-500 transition-colors" size={20} />
                   <input 
+                    ref={usernameInputRef}
                     required
                     type="text" 
                     placeholder="Ej: nlopez"
-                    className="w-full pl-12 pr-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl outline-none focus:border-primary-500 text-white font-bold placeholder:text-slate-700 transition-all"
+                    className="w-full pl-12 pr-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl outline-none focus:border-primary-500 text-white font-bold placeholder:text-slate-700 transition-all focus-visible:ring-2 focus-visible:ring-primary-500"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        passwordInputRef.current?.focus()
+                      }
+                    }}
+                    tabIndex={1}
                   />
                 </div>
               </div>
@@ -173,12 +189,14 @@ const Login = ({ onLogin }) => {
                 <div className="relative group">
                   <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary-500 transition-colors" size={20} />
                   <input 
+                    ref={passwordInputRef}
                     required
                     type="password" 
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl outline-none focus:border-primary-500 text-white font-bold placeholder:text-slate-700 transition-all"
+                    className="w-full pl-12 pr-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl outline-none focus:border-primary-500 text-white font-bold placeholder:text-slate-700 transition-all focus-visible:ring-2 focus-visible:ring-primary-500"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    tabIndex={2}
                   />
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   ShoppingBag, Truck, CheckSquare, Plus, Search, Filter, 
   Factory, ArrowRight, X, Trash2, Calendar, MapPin, 
@@ -32,6 +32,10 @@ const Purchases = () => {
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [orderQty, setOrderQty] = useState(1);
   const [orderCost, setOrderCost] = useState(0);
+
+  const productSearchInputRef = useRef(null)
+  const qtyInputRef = useRef(null)
+  const costInputRef = useRef(null)
 
   const [orderSupplierId, setOrderSupplierId] = useState('');
   const [orderSupplierSearchStr, setOrderSupplierSearchStr] = useState('');
@@ -327,9 +331,13 @@ const Purchases = () => {
       cost: parseFloat(orderCost)
     }])
     setSelectedProductId('')
+    setSelectedProduct(null)
     setProductSearchStr('')
     setOrderQty(1)
     setOrderCost(0)
+    setTimeout(() => {
+      productSearchInputRef.current?.focus()
+    }, 100)
   }
 
   const removeItemFromOrder = (index) => {
@@ -601,21 +609,40 @@ const Purchases = () => {
                     </div>
                   )}
                 </div>
+
                 <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col md:flex-row gap-4 md:items-end">
                    <div className="flex-grow w-full relative">
                      <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Buscador Inteligente de Productos</label>
                      <div className="relative">
                        <Search className="absolute left-3 top-3 text-gray-400" size={18}/>
                        <input 
+                         ref={productSearchInputRef}
                          type="text" 
                          placeholder="Ingresa múltiples palabras clave (ej: manguera truper 1/2)..." 
-                         className="w-full pl-10 pr-4 py-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-primary-500 transition-all font-bold text-gray-700 shadow-sm"
+                         className="w-full pl-10 pr-4 py-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-primary-500 transition-all font-bold text-gray-700 shadow-sm focus-visible:ring-2 focus-visible:ring-primary-500"
                          value={productSearchStr}
                          onChange={(e) => {
                            setProductSearchStr(e.target.value);
                            setShowProductDropdown(true);
                            setSelectedProductId('');
                            setSelectedProduct(null);
+                         }}
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                             e.preventDefault();
+                             if (productSearchResults.length > 0) {
+                               const p = productSearchResults[0];
+                               setSelectedProductId(p.id);
+                               setSelectedProduct(p);
+                               setProductSearchStr(`${p.legacy_code} - ${p.name}`);
+                               setOrderCost((parseFloat(p.cost || p.last_cost || 0) / 100).toFixed(2));
+                               setShowProductDropdown(false);
+                               setTimeout(() => {
+                                 qtyInputRef.current?.focus();
+                                 qtyInputRef.current?.select();
+                               }, 100);
+                             }
+                           }
                          }}
                          onFocus={() => setShowProductDropdown(true)}
                        />
@@ -632,6 +659,10 @@ const Purchases = () => {
                                  setProductSearchStr(`${p.legacy_code} - ${p.name}`);
                                  setOrderCost((parseFloat(p.cost || p.last_cost || 0) / 100).toFixed(2));
                                  setShowProductDropdown(false);
+                                 setTimeout(() => {
+                                   qtyInputRef.current?.focus();
+                                   qtyInputRef.current?.select();
+                                 }, 100);
                                }}
                                className="text-left px-4 py-3 hover:bg-primary-50 transition-colors border-b border-gray-100 flex items-center justify-between group"
                              >
@@ -653,16 +684,45 @@ const Purchases = () => {
                    </div>
                    <div className="w-full md:w-40">
                      <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Cantidad</label>
-                     <input type="number" min="1" step="0.01" value={orderQty} onChange={(e) => setOrderQty(e.target.value)} className="w-full p-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-primary-500 font-black text-gray-700 text-center shadow-sm transition-all" />
+                     <input 
+                       ref={qtyInputRef}
+                       type="number" 
+                       min="1" 
+                       step="0.01" 
+                       value={orderQty} 
+                       onChange={(e) => setOrderQty(e.target.value)} 
+                       onKeyDown={(e) => {
+                         if (e.key === 'Enter') {
+                           e.preventDefault();
+                           costInputRef.current?.focus();
+                           costInputRef.current?.select();
+                         }
+                       }}
+                       className="w-full p-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-primary-500 font-black text-gray-700 text-center shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary-500" 
+                     />
                    </div>
                    <div className="w-full md:w-48">
                      <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Costo U.</label>
                      <div className="relative">
                         <span className="absolute left-3 top-3 font-bold text-gray-400">$</span>
-                        <input type="number" min="0" step="0.01" value={orderCost} onChange={(e) => setOrderCost(e.target.value)} className="w-full pl-8 pr-3 py-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-primary-500 font-bold text-gray-700 shadow-sm transition-all" />
+                        <input 
+                          ref={costInputRef}
+                          type="number" 
+                          min="0" 
+                          step="0.01" 
+                          value={orderCost} 
+                          onChange={(e) => setOrderCost(e.target.value)} 
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addItemToOrder();
+                            }
+                          }}
+                          className="w-full pl-8 pr-3 py-3 bg-white rounded-xl outline-none border border-gray-200 focus:border-primary-500 font-bold text-gray-700 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary-500" 
+                        />
                      </div>
                    </div>
-                   <button type="button" onClick={addItemToOrder} className="w-full md:w-auto px-8 py-3 bg-primary-100 text-primary-700 rounded-xl font-bold hover:bg-primary-200 transition-colors flex items-center justify-center whitespace-nowrap"><Plus size={18} className="mr-1"/> Añadir</button>
+                   <button type="button" onClick={addItemToOrder} className="w-full md:w-auto px-8 py-3 bg-primary-100 text-primary-700 rounded-xl font-bold hover:bg-primary-200 transition-colors flex items-center justify-center whitespace-nowrap focus-visible:ring-2 focus-visible:ring-primary-500"><Plus size={18} className="mr-1"/> Añadir <kbd className="kbd-badge ml-2 bg-primary-200 border-primary-300 text-primary-800">Enter ↵</kbd></button>
                 </div>
 
                   <div className="animate-in fade-in slide-in-from-bottom-4 mt-8 pt-4 border-t border-gray-100">

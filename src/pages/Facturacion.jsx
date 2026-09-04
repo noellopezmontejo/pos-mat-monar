@@ -5,7 +5,7 @@ import {
   Plus, History, Trash2, CreditCard, ChevronDown, CheckSquare, Square,
   Clock, AlertTriangle, FileBarChart
 } from 'lucide-react';
-import apiClient from '../utils/apiClient'; // Use our configured apiClient
+import apiClient, { getApiUrl } from '../utils/apiClient'; // Use our configured apiClient
 import { useCompany } from '../contexts/CompanyContext';
 
 export default function Facturacion() {
@@ -113,6 +113,18 @@ export default function Facturacion() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadXML = (uuid) => {
+    if (!uuid) return;
+    const apiUrl = getApiUrl();
+    window.open(`${apiUrl}/api/billing/download/${uuid}/xml`, '_blank');
+  };
+
+  const handleDownloadPDF = (uuid) => {
+    if (!uuid) return;
+    const apiUrl = getApiUrl();
+    window.open(`${apiUrl}/api/billing/download/${uuid}/pdf`, '_blank');
   };
 
   // Filter out sales that are already invoiced
@@ -314,8 +326,20 @@ export default function Facturacion() {
                          {new Date(cfdi.created_at).toLocaleString('es-MX')}
                       </td>
                       <td className="px-6 py-5 text-right space-x-2">
-                         <button className="p-2 text-gray-400 hover:text-primary-600 transition-colors" title="Descargar XML"><Download size={18} /></button>
-                         <button className="p-2 text-gray-400 hover:text-primary-600 transition-colors" title="Descargar PDF"><FileText size={18} /></button>
+                         <button 
+                           onClick={() => handleDownloadXML(cfdi.uuid)} 
+                           className="p-2 text-gray-400 hover:text-primary-600 transition-colors" 
+                           title="Descargar XML"
+                         >
+                           <Download size={18} />
+                         </button>
+                         <button 
+                           onClick={() => handleDownloadPDF(cfdi.uuid)} 
+                           className="p-2 text-gray-400 hover:text-primary-600 transition-colors" 
+                           title="Descargar PDF"
+                         >
+                           <FileText size={18} />
+                         </button>
                          {cfdi.status !== 'CANCELADO' && cfdi.status !== 'CANCELADO (NC)' && cfdi.type !== 'E' && (
                            <>
                              <button 
@@ -361,16 +385,22 @@ export default function Facturacion() {
                  </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                 <button className="flex items-center justify-center space-x-2 py-4 bg-gray-100 rounded-2xl font-black text-gray-700 hover:bg-gray-200 transition-all">
-                    <Download size={18} />
-                    <span>XML</span>
-                 </button>
-                 <button className="flex items-center justify-center space-x-2 py-4 bg-primary-600 text-white rounded-2xl font-black shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all">
-                    <FileText size={18} />
-                    <span>PDF</span>
-                 </button>
-              </div>
+               <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => handleDownloadXML(successData.uuid)}
+                    className="flex items-center justify-center space-x-2 py-4 bg-gray-100 rounded-2xl font-black text-gray-700 hover:bg-gray-200 transition-all"
+                  >
+                     <Download size={18} />
+                     <span>XML</span>
+                  </button>
+                  <button 
+                    onClick={() => handleDownloadPDF(successData.uuid)}
+                    className="flex items-center justify-center space-x-2 py-4 bg-primary-600 text-white rounded-2xl font-black shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all"
+                  >
+                     <FileText size={18} />
+                     <span>PDF</span>
+                  </button>
+               </div>
               
               <button onClick={() => setIsBillingModalOpen(false)} className="mt-6 text-gray-400 font-bold hover:text-gray-600 transition-colors uppercase text-[10px] tracking-widest">Cerrar Ventana</button>
            </div>

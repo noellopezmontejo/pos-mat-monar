@@ -1,5 +1,6 @@
 const { prisma } = require('../db');
 const CFDIService = require('../services/cfdiService');
+const PDFInvoiceService = require('../services/pdfInvoiceService');
 
 /**
  * Facturación de Ventas (Individual o Consolidada)
@@ -224,4 +225,74 @@ const getInvoices = async (req, res) => {
   }
 };
 
-module.exports = { generateInvoice, generateCreditNote, cancelInvoice, getInvoices };
+const downloadXML = async (req, res) => {
+  try {
+    const { uuid } = req.params;
+    const cfdi = await prisma.cFDI.findUnique({
+      where: { uuid }
+    });
+
+    if (!cfdi || !cfdi.xml_url) {
+      return res.status(404).send('XML no encontrado');
+    }
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="Factura_${uuid}.xml"`);
+    return res.send(cfdi.xml_url);
+  } catch (error) {
+    console.error('[Download XML Error]', error);
+    res.status(500).send('Error interno al descargar XML');
+  }
+};
+
+const downloadPDF = async (req, res) => {
+  try {
+    const { uuid } = req.params;
+    const cfdi = await prisma.cFDI.findUnique({
+      where: { uuid },
+      include: {
+        sales: {
+          include: {
+            items: {
+              include: {
+                product: {
+                  include: {
+                    category: true
+                  }
+                }
+              }
+            },
+            customer: {
+              include: {
+                fiscal_client: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!cfdi) {
+      return res.status(404).send('Factura no encontrada');
+    }
+
+    const profile = await prisma.companyProfile.findFirst() || { name: 'CIMENTA' };
+    const pdfBuffer = await PDFInvoiceService.generateInvoicePDF(cfdi, profile);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Factura_${uuid}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('[Download PDF Error]', error);
+    res.status(500).send('Error interno al generar/descargar PDF');
+  }
+};
+
+module.exports = { 
+  generateInvoice, 
+  generateCreditNote, 
+  cancelInvoice, 
+  getInvoices, 
+  downloadXML, 
+  downloadPDF 
+};

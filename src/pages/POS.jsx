@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Search, ShoppingCart, Plus, Minus, Package, CreditCard, Truck, FileText, Lock, ShieldCheck, User, X } from 'lucide-react'
 import axios from 'axios'
+import { sound } from '../utils/audioFeedback'
 
 const ProductCard = ({ product, onAdd, saleType }) => (
   <div className="bg-white p-4 rounded-2xl border border-gray-100 hover:shadow-lg transition-all cursor-pointer group flex flex-col justify-between" onClick={() => onAdd(product)}>
@@ -85,7 +86,30 @@ const POS = () => {
       }
       return [...prev, { ...product, qty: 1, selectedPrice: 'price_1' }]
     })
+    sound.playScanBeep()
   }
+
+  const searchInputRef = useRef(null)
+
+  // Autofocus search input
+  useEffect(() => {
+    searchInputRef.current?.focus()
+  }, [])
+
+  // Global hotkeys (F2 search, F12 checkout)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F2') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      } else if (e.key === 'F12' || (e.ctrlKey && e.key === 'Enter')) {
+        e.preventDefault()
+        handleProcessSale()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [cart, selectedCustomer, saleType])
 
   const changeItemPrice = (id, newPriceKey) => {
     setCart(prev => prev.map(item => item.id === id ? { ...item, selectedPrice: newPriceKey } : item))
@@ -216,11 +240,21 @@ const POS = () => {
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
+            ref={searchInputRef}
             type="text" 
             placeholder="Busca el producto de tu base de datos..." 
-            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl shadow-sm focus:ring-2 focus:ring-primary-500 outline-none text-lg"
+            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl shadow-sm focus:ring-2 focus:ring-primary-500 outline-none text-lg focus-visible:ring-4 focus-visible:ring-primary-500"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                if (products.length > 0) {
+                  addToCart(products[0])
+                  setSearch('')
+                }
+              }
+            }}
           />
         </div>
         

@@ -224,11 +224,32 @@ const AccountsReceivable = () => {
         <p className="text-gray-500 font-bold mb-10 text-center max-w-sm">Abre tu caja para iniciar tu turno y realizar cobros.</p>
         <button onClick={() => setIsSessionOpenModal(true)} className="bg-primary-600 hover:bg-primary-500 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl transition-all flex items-center gap-3 active:scale-95"><Unlock size={24} /> Aperturar Caja</button>
         {isSessionOpenModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setIsSessionOpenModal(false)
+            }}
+          >
              <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in-95">
                 <div className="flex items-center justify-between mb-6"><h3 className="text-xl font-black text-gray-900 tracking-tighter">Fondo de Caja</h3><button onClick={() => setIsSessionOpenModal(false)} className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"><X size={18} /></button></div>
-                <div className="space-y-4"><label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Efectivo Inicial</label><input type="number" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-gray-900 ring-1 ring-gray-100 focus:ring-primary-500/20" placeholder="0.00" value={openBalance} onChange={(e) => setOpenBalance(e.target.value)} /></div>
-                <button onClick={handleOpenSession} className="w-full mt-8 py-4 bg-primary-600 text-white rounded-2xl font-black text-sm tracking-tight shadow-xl hover:bg-primary-700 transition-all transform active:scale-95 flex items-center justify-center gap-2"><Unlock size={18}/> Iniciar Turno</button>
+                <div className="space-y-4">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Efectivo Inicial</label>
+                  <input 
+                    autoFocus
+                    type="number" 
+                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-gray-900 ring-1 ring-gray-100 focus:ring-primary-500/20" 
+                    placeholder="0.00" 
+                    value={openBalance} 
+                    onChange={(e) => setOpenBalance(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleOpenSession()
+                      }
+                    }}
+                  />
+                </div>
+                <button onClick={handleOpenSession} className="w-full mt-8 py-4 bg-primary-600 text-white rounded-2xl font-black text-sm tracking-tight shadow-xl hover:bg-primary-700 transition-all transform active:scale-95 flex items-center justify-center gap-2"><Unlock size={18}/> Iniciar Turno <kbd className="kbd-badge bg-white/20 text-white border-white/30 ml-2">Enter ↵</kbd></button>
              </div>
           </div>
         )}
@@ -376,29 +397,66 @@ const AccountsReceivable = () => {
         )}
 
         {isPaymentModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200 no-print">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200 no-print"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setIsPaymentModalOpen(false)
+                setIsBulkMode(false)
+              }
+            }}
+          >
              <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
                 <div className="p-8 bg-primary-50 border-b border-primary-100 flex items-center justify-between"><div><h3 className="text-xl font-black text-primary-900 tracking-tighter">{isBulkMode ? `Cobro Múltiple` : `Registrar Pago: ${selectedSale?.folio}`}</h3><p className="text-[10px] font-black text-primary-600 uppercase tracking-widest">{isBulkMode ? 'Selección Múltiple' : selectedSale?.customer?.name}</p></div><button onClick={() => { setIsPaymentModalOpen(false); setIsBulkMode(false); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 shadow-sm"><X size={18} /></button></div>
                 <div className="p-8 space-y-5">
                    <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between"><div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Deuda Total</p><p className="text-2xl font-black text-gray-900">${currentDebt.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p></div><div className="text-right"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Notas</p><p className="text-lg font-black text-primary-600">{isBulkMode ? `${selectedSalesIds.length}` : `1`}</p></div></div>
-                   <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Monto Entregado</label><input type="number" className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} /></div>
-                   <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Método</label><select className="w-full px-4 py-3.5 bg-gray-50 rounded-xl outline-none font-bold" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option></select></div><div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Referencia</label><input className="w-full px-4 py-3.5 bg-gray-50 rounded-xl outline-none font-bold" placeholder="Opcional" value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} /></div></div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Monto Entregado</label>
+                     <input 
+                       autoFocus
+                       type="number" 
+                       className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl focus-visible:ring-2 focus-visible:ring-primary-500" 
+                       value={payAmount} 
+                       onChange={(e) => setPayAmount(e.target.value)} 
+                       onKeyDown={(e) => {
+                         if (e.key === 'Enter') {
+                           e.preventDefault()
+                           if (isBulkMode) handleBulkPayment()
+                           else confirmPayment()
+                         }
+                       }}
+                     />
+                   </div>
+                   <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Método</label><select className="w-full px-4 py-3.5 bg-gray-50 rounded-xl outline-none font-bold focus-visible:ring-2 focus-visible:ring-primary-500" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option></select></div><div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Referencia</label><input className="w-full px-4 py-3.5 bg-gray-50 rounded-xl outline-none font-bold focus-visible:ring-2 focus-visible:ring-primary-500" placeholder="Opcional" value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (isBulkMode) handleBulkPayment(); else confirmPayment(); } }} /></div></div>
                    {parseFloat(payAmount) > currentDebt && (<div className="p-6 bg-green-600 text-white rounded-3xl flex items-center justify-between animate-in zoom-in-95"><div><p className="text-[10px] font-black uppercase opacity-80">Cambio a Entregar</p><p className="text-4xl font-black">${(parseFloat(payAmount) - currentDebt).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p></div><div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center"><Banknote size={32} /></div></div>)}
-                   <button onClick={isBulkMode ? handleBulkPayment : confirmPayment} className="w-full py-4 bg-primary-600 text-white rounded-2xl font-black text-sm shadow-xl hover:bg-primary-700 transition-all flex items-center justify-center gap-2"><CheckCircle2 size={18}/> Confirmar Liquidación</button>
+                   <button onClick={isBulkMode ? handleBulkPayment : confirmPayment} className="w-full py-4 bg-primary-600 text-white rounded-2xl font-black text-sm shadow-xl hover:bg-primary-700 transition-all flex items-center justify-center gap-2 focus-visible:ring-4 focus-visible:ring-primary-500"><CheckCircle2 size={18}/> Confirmar Liquidación <kbd className="kbd-badge bg-white/20 text-white border-white/30 ml-2">Enter ↵</kbd></button>
                 </div>
              </div>
           </div>
         )}
 
         {showPaidModal && printData && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm no-print animate-in fade-in duration-200">
+          <div 
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm no-print animate-in fade-in duration-200"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handlePrint()
+              } else if (e.key === 'Escape' || e.key === ' ') {
+                e.preventDefault()
+                setShowPaidModal(false)
+                setPrintData(null)
+              }
+            }}
+            tabIndex={0}
+          >
             <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full text-center shadow-2xl animate-in zoom-in-95 duration-300">
               <div className="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={48} /></div>
               <h2 className="text-3xl font-black text-gray-900 mb-2">¡Cobro Exitoso!</h2>
               <p className="text-gray-500 font-bold mb-8">Folio: {printData.sale.folio}</p>
               <div className="space-y-3">
-                 <button onClick={handlePrint} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-gray-800 transition-colors shadow-lg"><Printer size={24} /> IMPRIMIR 3 COPIAS</button>
-                 <button onClick={() => { setShowPaidModal(false); setPrintData(null); }} className="w-full py-4 bg-gray-100 text-gray-900 rounded-2xl font-black text-lg hover:bg-gray-200 transition-colors mt-2">CERRAR</button>
+                 <button onClick={handlePrint} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-gray-800 transition-colors shadow-lg focus-visible:ring-4 focus-visible:ring-primary-500" autoFocus><Printer size={24} /> IMPRIMIR 3 COPIAS <kbd className="kbd-badge bg-gray-800 text-gray-300 border-gray-700 ml-2">Enter ↵</kbd></button>
+                 <button onClick={() => { setShowPaidModal(false); setPrintData(null); }} className="w-full py-4 bg-gray-100 text-gray-900 rounded-2xl font-black text-lg hover:bg-gray-200 transition-colors mt-2 focus-visible:ring-4 focus-visible:ring-primary-500">CERRAR <kbd className="kbd-badge bg-gray-200 text-gray-700 border-gray-300 ml-2">Esc</kbd></button>
               </div>
             </div>
           </div>
@@ -406,7 +464,12 @@ const AccountsReceivable = () => {
 
         {/* Modal de Corte de Caja */}
         {isSessionCutModal && cutData && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200 no-print">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-200 no-print"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setIsSessionCutModal(false)
+            }}
+          >
             <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
                <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-red-50/30">
                   <div className="flex items-center gap-3">
@@ -461,11 +524,18 @@ const AccountsReceivable = () => {
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Efectivo Contado en Caja (Real)</label>
                         <input 
+                           autoFocus
                            type="number" 
                            className="w-full px-6 py-4 bg-gray-50 rounded-2xl outline-none font-black text-2xl text-primary-600 focus:ring-2 ring-primary-500/20" 
                            placeholder="0.00"
                            value={countedCash}
                            onChange={(e) => setCountedCash(e.target.value)}
+                           onKeyDown={(e) => {
+                             if (e.key === 'Enter') {
+                               e.preventDefault()
+                               handleCloseSession()
+                             }
+                           }}
                         />
                      </div>
                      <div className="space-y-2">
@@ -481,9 +551,9 @@ const AccountsReceivable = () => {
                </div>
 
                <div className="p-8 bg-gray-50 border-t border-gray-100 flex gap-4">
-                  <button onClick={() => setIsSessionCutModal(false)} className="flex-1 py-4 bg-white text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest border border-gray-200 hover:bg-gray-100 transition-all">Cancelar</button>
+                  <button onClick={() => setIsSessionCutModal(false)} className="flex-1 py-4 bg-white text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest border border-gray-200 hover:bg-gray-100 transition-all">Cancelar <kbd className="kbd-badge ml-1">Esc</kbd></button>
                   <button onClick={handleCloseSession} className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-2">
-                     <ShieldCheck size={18} /> Finalizar Turno y Cerrar Caja
+                     <ShieldCheck size={18} /> Finalizar Turno y Cerrar Caja <kbd className="kbd-badge bg-white/20 text-white border-white/30 ml-1">Enter ↵</kbd>
                   </button>
                </div>
             </div>
